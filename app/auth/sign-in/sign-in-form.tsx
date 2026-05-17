@@ -1,8 +1,17 @@
 "use client"
 
+// ── Microsoft (Azure AD) OAuth – manual setup required ────────────────────────
+// Before the Microsoft button works you must:
+// 1. Create an app registration in the Azure portal (portal.azure.com)
+//    → App registrations → New registration
+//    → Supported account types: "Accounts in any org directory + personal"
+//    → Redirect URI: https://<your-supabase-ref>.supabase.co/auth/v1/callback
+// 2. In the new app, go to Certificates & secrets → New client secret → copy value
+// 3. In the Supabase dashboard → Authentication → Providers → Azure:
+//    → Enable Azure, paste the Application (client) ID and client secret
+// ──────────────────────────────────────────────────────────────────────────────
+
 import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
