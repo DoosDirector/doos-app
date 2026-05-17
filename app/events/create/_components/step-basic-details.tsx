@@ -1,14 +1,11 @@
 "use client"
 
-import {
-  Martini,
-  CupSoda,
-  AlertCircle,
-} from "lucide-react"
+import { AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { EventTypePicker } from "./event-type-picker"
+import { AlcoholToggle } from "./alcohol-toggle"
 import type { CreateEventData } from "./create-event-form"
 
 const TITLE_MAX = 120
@@ -126,50 +123,10 @@ export function StepBasicDetails({ data, onChange, showErrors = false }: Props) 
       </div>
 
       {/* Alcohol toggle */}
-      <div className="space-y-1.5">
-        <Label id="alcohol-label">Alcohol-friendly?</Label>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={data.alcoholFriendly}
-          aria-labelledby="alcohol-label"
-          onClick={() => onChange({ alcoholFriendly: !data.alcoholFriendly })}
-          className={cn(
-            "flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 transition-all",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-            data.alcoholFriendly
-              ? "border-brand-accent bg-brand-accent/5"
-              : "border-input bg-background hover:bg-muted/50"
-          )}
-        >
-          <div className="flex items-center gap-3">
-            {data.alcoholFriendly ? (
-              <Martini className="h-5 w-5 text-brand-accent" aria-hidden="true" />
-            ) : (
-              <CupSoda className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            )}
-            <span className="text-sm font-medium">
-              {data.alcoholFriendly ? "Alcohol-friendly event" : "Alcohol-free event"}
-            </span>
-          </div>
-          {/* Toggle pill */}
-          <div
-            className={cn(
-              "relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200",
-              data.alcoholFriendly ? "bg-brand-accent" : "bg-input"
-            )}
-            aria-hidden="true"
-          >
-            <span
-              className={cn(
-                "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg",
-                "transform transition duration-200 ease-in-out",
-                data.alcoholFriendly ? "translate-x-5" : "translate-x-0"
-              )}
-            />
-          </div>
-        </button>
-      </div>
+      <AlcoholToggle
+        value={data.alcoholFriendly}
+        onChange={(alcoholFriendly) => onChange({ alcoholFriendly })}
+      />
     </div>
   )
 }

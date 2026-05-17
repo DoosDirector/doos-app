@@ -32,7 +32,7 @@ const INITIAL_DATA: CreateEventData = {
   description: "",
   date: "",
   type: "other",
-  alcoholFriendly: false,
+  alcoholFriendly: true,
   pollQuestions: [],
   stops: [],
 }
