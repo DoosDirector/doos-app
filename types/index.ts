@@ -10,6 +10,8 @@ export type EventType =
   | "activity"
   | "other"
 
+export type QuestionType = "venue" | "date" | "activity" | "other"
+
 // ── Database row types ────────────────────────────────────────────────────────
 
 export type Profile = {
@@ -28,6 +30,14 @@ export type Event = {
   date: string | null
   alcohol_friendly: boolean
   share_token: string
+  created_at: string
+}
+
+export type PollQuestion = {
+  id: string
+  event_id: string
+  question_text: string
+  question_type: QuestionType
   created_at: string
 }
 
@@ -50,11 +60,20 @@ export type Database = {
         }
         Update: Partial<Omit<Event, "id" | "created_at">>
       }
+      poll_questions: {
+        Row: PollQuestion
+        Insert: Omit<PollQuestion, "id" | "created_at"> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<PollQuestion, "id" | "event_id" | "created_at">>
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: {
       event_type: EventType
+      question_type: QuestionType
     }
   }
 }
