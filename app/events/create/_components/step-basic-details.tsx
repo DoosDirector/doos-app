@@ -1,12 +1,6 @@
 "use client"
 
 import {
-  Moon,
-  UtensilsCrossed,
-  Coffee,
-  Zap,
-  PartyPopper,
-  CalendarDays,
   Martini,
   CupSoda,
   AlertCircle,
@@ -14,49 +8,28 @@ import {
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { EventTypePicker } from "./event-type-picker"
 import type { CreateEventData } from "./create-event-form"
-import type { EventType } from "@/types"
-
-// ── Event type options ────────────────────────────────────────────────────────
-
-const EVENT_TYPES: {
-  value: EventType
-  label: string
-  icon: React.ElementType
-  activeClass: string
-}[] = [
-  { value: "night_out",     label: "Night out",     icon: Moon,            activeClass: "text-violet-600 bg-violet-50 border-violet-400" },
-  { value: "lunch",         label: "Lunch",         icon: UtensilsCrossed, activeClass: "text-amber-600 bg-amber-50 border-amber-400" },
-  { value: "coffee",        label: "Coffee",        icon: Coffee,          activeClass: "text-orange-600 bg-orange-50 border-orange-400" },
-  { value: "team_building", label: "Team building", icon: Zap,             activeClass: "text-blue-600 bg-blue-50 border-blue-400" },
-  { value: "activity",      label: "Activity",      icon: PartyPopper,     activeClass: "text-green-600 bg-green-50 border-green-400" },
-  { value: "other",         label: "Other",         icon: CalendarDays,    activeClass: "text-neutral-600 bg-neutral-100 border-neutral-400" },
-]
 
 const TITLE_MAX = 120
 const DESC_MAX  = 500
 
-// ── Field error ───────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function FieldError({ message }: { message: string }) {
+function FieldError({ id, message }: { id: string; message: string }) {
   return (
-    <p role="alert" className="flex items-center gap-1 text-xs text-destructive">
+    <p id={id} role="alert" className="flex items-center gap-1 text-xs text-destructive">
       <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {message}
     </p>
   )
 }
 
-// ── Char counter ──────────────────────────────────────────────────────────────
-
 function CharCount({ current, max }: { current: number; max: number }) {
   const near = current > max * 0.85
   return (
     <span
-      className={cn(
-        "text-xs tabular-nums",
-        near ? "text-destructive" : "text-muted-foreground"
-      )}
+      className={cn("text-xs tabular-nums", near ? "text-destructive" : "text-muted-foreground")}
       aria-live="polite"
     >
       {current}/{max}
@@ -101,11 +74,7 @@ export function StepBasicDetails({ data, onChange, showErrors = false }: Props) 
           aria-describedby={titleError ? "title-error" : undefined}
           className={cn(titleError && "border-destructive focus-visible:ring-destructive")}
         />
-        {titleError && (
-          <span id="title-error">
-            <FieldError message={titleError} />
-          </span>
-        )}
+        {titleError && <FieldError id="title-error" message={titleError} />}
       </div>
 
       {/* Description */}
@@ -145,35 +114,16 @@ export function StepBasicDetails({ data, onChange, showErrors = false }: Props) 
       </div>
 
       {/* Event type selector */}
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium leading-none">
+      <div className="space-y-2">
+        <Label>
           Event type{" "}
           <span className="text-destructive" aria-hidden="true">*</span>
-        </legend>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-          {EVENT_TYPES.map(({ value, label, icon: Icon, activeClass }) => {
-            const selected = data.type === value
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => onChange({ type: value })}
-                aria-pressed={selected}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-xs font-medium transition-all",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                  selected
-                    ? cn(activeClass, "scale-105 shadow-sm")
-                    : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
-                )}
-              >
-                <Icon className="h-5 w-5" aria-hidden="true" />
-                <span>{label}</span>
-              </button>
-            )
-          })}
-        </div>
-      </fieldset>
+        </Label>
+        <EventTypePicker
+          value={data.type}
+          onChange={(type) => onChange({ type })}
+        />
+      </div>
 
       {/* Alcohol toggle */}
       <div className="space-y-1.5">
