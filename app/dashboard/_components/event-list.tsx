@@ -1,28 +1,8 @@
-import Link from "next/link"
 import { CalendarDays } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { requireUser } from "@/lib/auth/guard"
-import { Button } from "@/components/ui/button"
 import { EventCard } from "@/components/event-card"
-
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-function EmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-16 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-primary/10">
-        <CalendarDays className="h-8 w-8 text-brand-primary" aria-hidden="true" />
-      </div>
-      <h2 className="mb-2 text-lg font-semibold text-foreground">No events yet</h2>
-      <p className="mb-6 max-w-xs text-sm text-muted-foreground">
-        Create your first Doo and invite your team to vote, RSVP, and share memories.
-      </p>
-      <Button asChild>
-        <Link href="/events/create">Create your first Doo</Link>
-      </Button>
-    </div>
-  )
-}
+import { EmptyState } from "@/components/empty-state"
 
 // ── Event list (async server component used inside Suspense) ──────────────────
 
@@ -42,7 +22,16 @@ export async function EventList() {
     rsvp_count: Array.isArray(e.rsvp_count) ? (e.rsvp_count[0]?.count ?? 0) : 0,
   }))
 
-  if (eventsWithCount.length === 0) return <EmptyState />
+  if (eventsWithCount.length === 0) {
+    return (
+      <EmptyState
+        icon={CalendarDays}
+        heading="No Doos yet"
+        description="Create your first Doo and invite your team to vote, RSVP, and share memories."
+        action={{ label: "Create your first Doo", href: "/events/create" }}
+      />
+    )
+  }
 
   const now = new Date()
   const upcoming = eventsWithCount.filter((e) => !e.date || new Date(e.date) >= now)
