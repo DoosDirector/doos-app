@@ -3,7 +3,7 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { SkeletonCard } from "@/components/ui/skeleton"
+import { EventCardSkeleton } from "@/components/ui/skeleton"
 import { EventList } from "./_components/event-list"
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ function EventListSkeleton() {
   return (
     <div className="space-y-3" aria-label="Loading events…">
       {Array.from({ length: 3 }).map((_, i) => (
-        <SkeletonCard key={i} />
+        <EventCardSkeleton key={i} />
       ))}
     </div>
   )
