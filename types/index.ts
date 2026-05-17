@@ -48,6 +48,13 @@ export type PollOption = {
   created_at: string
 }
 
+export type PollVote = {
+  id: string
+  option_id: string
+  user_id: string
+  created_at: string
+}
+
 // ── Supabase Database schema (extends as tables are added) ────────────────────
 
 export type Database = {
@@ -82,6 +89,14 @@ export type Database = {
           created_at?: string
         }
         Update: Partial<Omit<PollOption, "id" | "question_id" | "created_at">>
+      }
+      poll_votes: {
+        Row: PollVote
+        Insert: Omit<PollVote, "id" | "created_at"> & {
+          id?: string
+          created_at?: string
+        }
+        Update: never
       }
     }
     Views: Record<string, never>
