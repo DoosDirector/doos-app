@@ -90,12 +90,19 @@ function StepIndicator({ current }: { current: number }) {
 export function CreateEventForm() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState<CreateEventData>(INITIAL_DATA)
+  const [step1Attempted, setStep1Attempted] = useState(false)
 
   function update(partial: Partial<CreateEventData>) {
     setData((prev) => ({ ...prev, ...partial }))
   }
 
+  const isStep1Valid = data.title.trim().length > 0
+
   function handleNext() {
+    if (step === 0 && !isStep1Valid) {
+      setStep1Attempted(true)
+      return
+    }
     setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
 
@@ -103,14 +110,18 @@ export function CreateEventForm() {
     setStep((s) => Math.max(s - 1, 0))
   }
 
-  const isStep1Valid = data.title.trim().length > 0
-
   return (
     <div className="space-y-6">
       <StepIndicator current={step} />
 
       <div className="rounded-xl border bg-card p-5 sm:p-6">
-        {step === 0 && <StepBasicDetails data={data} onChange={update} />}
+        {step === 0 && (
+          <StepBasicDetails
+            data={data}
+            onChange={update}
+            showErrors={step1Attempted}
+          />
+        )}
         {step === 1 && <StepPollBuilder data={data} onChange={update} />}
         {step === 2 && <StepMapStops />}
       </div>
@@ -126,11 +137,7 @@ export function CreateEventForm() {
         </Button>
 
         {step < STEPS.length - 1 ? (
-          <Button
-            type="button"
-            onClick={handleNext}
-            disabled={step === 0 && !isStep1Valid}
-          >
+          <Button type="button" onClick={handleNext}>
             Next
           </Button>
         ) : (

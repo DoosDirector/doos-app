@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Martini,
   CupSoda,
+  AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -32,35 +33,87 @@ const EVENT_TYPES: {
   { value: "other",         label: "Other",         icon: CalendarDays,    activeClass: "text-neutral-600 bg-neutral-100 border-neutral-400" },
 ]
 
+const TITLE_MAX = 120
+const DESC_MAX  = 500
+
+// ── Field error ───────────────────────────────────────────────────────────────
+
+function FieldError({ message }: { message: string }) {
+  return (
+    <p role="alert" className="flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {message}
+    </p>
+  )
+}
+
+// ── Char counter ──────────────────────────────────────────────────────────────
+
+function CharCount({ current, max }: { current: number; max: number }) {
+  const near = current > max * 0.85
+  return (
+    <span
+      className={cn(
+        "text-xs tabular-nums",
+        near ? "text-destructive" : "text-muted-foreground"
+      )}
+      aria-live="polite"
+    >
+      {current}/{max}
+    </span>
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 type Props = {
   data: CreateEventData
   onChange: (partial: Partial<CreateEventData>) => void
+  showErrors?: boolean
 }
 
-export function StepBasicDetails({ data, onChange }: Props) {
+export function StepBasicDetails({ data, onChange, showErrors = false }: Props) {
+  const titleError = showErrors && data.title.trim().length === 0
+    ? "Event title is required"
+    : null
+
   return (
     <div className="space-y-6">
       {/* Title */}
       <div className="space-y-1.5">
-        <Label htmlFor="title">
-          Event title <span className="text-destructive" aria-hidden="true">*</span>
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="title">
+            Event title{" "}
+            <span className="text-destructive" aria-hidden="true">*</span>
+          </Label>
+          <CharCount current={data.title.length} max={TITLE_MAX} />
+        </div>
         <Input
           id="title"
           placeholder="Summer social"
           value={data.title}
           onChange={(e) => onChange({ title: e.target.value })}
-          maxLength={120}
+          maxLength={TITLE_MAX}
           required
           autoFocus
+          aria-required="true"
+          aria-invalid={titleError ? "true" : "false"}
+          aria-describedby={titleError ? "title-error" : undefined}
+          className={cn(titleError && "border-destructive focus-visible:ring-destructive")}
         />
+        {titleError && (
+          <span id="title-error">
+            <FieldError message={titleError} />
+          </span>
+        )}
       </div>
 
       {/* Description */}
       <div className="space-y-1.5">
-        <Label htmlFor="description">Description</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="description">Description</Label>
+          <CharCount current={data.description.length} max={DESC_MAX} />
+        </div>
         <textarea
           id="description"
           className={cn(
@@ -73,29 +126,30 @@ export function StepBasicDetails({ data, onChange }: Props) {
           value={data.description}
           onChange={(e) => onChange({ description: e.target.value })}
           rows={3}
-          maxLength={500}
+          maxLength={DESC_MAX}
         />
       </div>
 
       {/* Date & time */}
       <div className="space-y-1.5">
-        <Label htmlFor="date">
-          Date &amp; time{" "}
-          <span className="text-xs font-normal text-muted-foreground">(UK time)</span>
-        </Label>
+        <Label htmlFor="date">Date &amp; time</Label>
         <Input
           id="date"
           type="datetime-local"
           value={data.date}
           onChange={(e) => onChange({ date: e.target.value })}
         />
+        <p className="text-xs text-muted-foreground">
+          Enter the time in UK local time (GMT/BST — your device timezone is used).
+        </p>
       </div>
 
       {/* Event type selector */}
-      <div className="space-y-2">
-        <Label>
-          Event type <span className="text-destructive" aria-hidden="true">*</span>
-        </Label>
+      <fieldset className="space-y-2">
+        <legend className="text-sm font-medium leading-none">
+          Event type{" "}
+          <span className="text-destructive" aria-hidden="true">*</span>
+        </legend>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {EVENT_TYPES.map(({ value, label, icon: Icon, activeClass }) => {
             const selected = data.type === value
@@ -107,6 +161,7 @@ export function StepBasicDetails({ data, onChange }: Props) {
                 aria-pressed={selected}
                 className={cn(
                   "flex flex-col items-center gap-1.5 rounded-xl border-2 p-3 text-xs font-medium transition-all",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   selected
                     ? cn(activeClass, "scale-105 shadow-sm")
                     : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -118,17 +173,20 @@ export function StepBasicDetails({ data, onChange }: Props) {
             )
           })}
         </div>
-      </div>
+      </fieldset>
 
       {/* Alcohol toggle */}
       <div className="space-y-1.5">
-        <Label>Alcohol-friendly?</Label>
+        <Label id="alcohol-label">Alcohol-friendly?</Label>
         <button
           type="button"
+          role="switch"
+          aria-checked={data.alcoholFriendly}
+          aria-labelledby="alcohol-label"
           onClick={() => onChange({ alcoholFriendly: !data.alcoholFriendly })}
-          aria-pressed={data.alcoholFriendly}
           className={cn(
             "flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 transition-all",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             data.alcoholFriendly
               ? "border-brand-accent bg-brand-accent/5"
               : "border-input bg-background hover:bg-muted/50"
