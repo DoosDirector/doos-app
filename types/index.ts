@@ -69,6 +69,18 @@ export type Rsvp = {
   created_at: string
 }
 
+export type EventStop = {
+  id: string
+  event_id: string
+  place_id: string | null
+  name: string
+  address: string | null
+  lat: number
+  lng: number
+  order: number
+  created_at: string
+}
+
 // ── Supabase Database schema (extends as tables are added) ────────────────────
 
 export type Database = {
@@ -119,6 +131,14 @@ export type Database = {
           created_at?: string
         }
         Update: Partial<Pick<Rsvp, "status" | "drinking_preference">>
+      }
+      event_stops: {
+        Row: EventStop
+        Insert: Omit<EventStop, "id" | "created_at"> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<EventStop, "id" | "event_id" | "created_at">>
       }
     }
     Views: Record<string, never>
