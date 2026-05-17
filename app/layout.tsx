@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
+import { Providers } from "@/components/providers"
 import "./globals.css"
 
 const inter = Inter({
@@ -9,7 +10,10 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: "Doo's – Team Events Made Easy",
+  title: {
+    default: "Doo's – Team Events Made Easy",
+    template: "%s – Doo's",
+  },
   description:
     "Organise team nights out, lunches, and activities with polls, maps, RSVPs, and a shared Memory Box.",
   manifest: "/manifest.json",
@@ -30,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en-GB" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased bg-background text-foreground">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
