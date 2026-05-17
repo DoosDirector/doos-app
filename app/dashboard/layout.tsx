@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/app-shell"
 import { requireUser } from "@/lib/auth/guard"
 
 export default async function DashboardLayout({
@@ -6,5 +7,5 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   await requireUser()
-  return <>{children}</>
+  return <AppShell>{children}</AppShell>
 }
