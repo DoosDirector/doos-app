@@ -16,6 +16,8 @@ export type RsvpStatus = "yes" | "no" | "maybe"
 
 export type DrinkingPreference = "yes" | "no" | "maybe"
 
+export type MediaType = "image" | "video"
+
 // ── Database row types ────────────────────────────────────────────────────────
 
 export type Profile = {
@@ -81,6 +83,16 @@ export type EventStop = {
   created_at: string
 }
 
+export type Memory = {
+  id: string
+  event_id: string
+  uploader_id: string
+  storage_path: string
+  media_type: MediaType
+  caption: string | null
+  created_at: string
+}
+
 // ── Supabase Database schema (extends as tables are added) ────────────────────
 
 export type Database = {
@@ -140,6 +152,14 @@ export type Database = {
         }
         Update: Partial<Omit<EventStop, "id" | "event_id" | "created_at">>
       }
+      memories: {
+        Row: Memory
+        Insert: Omit<Memory, "id" | "created_at"> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Pick<Memory, "caption">>
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -148,6 +168,7 @@ export type Database = {
       question_type: QuestionType
       rsvp_status: RsvpStatus
       drinking_preference: DrinkingPreference
+      media_type: MediaType
     }
   }
 }
