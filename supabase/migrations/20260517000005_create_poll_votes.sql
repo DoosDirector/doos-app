@@ -1,20 +1,17 @@
 -- ── poll_votes table ──────────────────────────────────────────────────────────
+-- question_id is stored alongside option_id (small denormalisation) so the
+-- unique constraint (user_id, question_id) can be a simple table constraint
+-- without requiring a subquery expression index (unsupported in PostgreSQL).
 create table if not exists public.poll_votes (
   id          uuid primary key default gen_random_uuid(),
   option_id   uuid not null references public.poll_options (id) on delete cascade,
+  question_id uuid not null references public.poll_questions (id) on delete cascade,
   user_id     uuid not null references public.profiles (id) on delete cascade,
-  created_at  timestamptz not null default now()
-);
+  created_at  timestamptz not null default now(),
 
--- ── Unique constraint: one vote per user per question ─────────────────────────
--- We enforce this at the question level (not option level) so a user can't
--- vote for two options on the same question. The subquery resolves
--- option → question for the unique index.
-create unique index if not exists poll_votes_user_question_uniq
-  on public.poll_votes (
-    user_id,
-    (select question_id from public.poll_options where id = option_id)
-  );
+  -- One vote per user per question, enforced at the DB level
+  constraint poll_votes_user_question_uniq unique (user_id, question_id)
+);
 
 -- ── Indexes ───────────────────────────────────────────────────────────────────
 -- Fast vote-count aggregation per option
