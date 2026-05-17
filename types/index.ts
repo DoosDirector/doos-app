@@ -12,6 +12,10 @@ export type EventType =
 
 export type QuestionType = "venue" | "date" | "activity" | "other"
 
+export type RsvpStatus = "yes" | "no" | "maybe"
+
+export type DrinkingPreference = "yes" | "no" | "maybe"
+
 // ── Database row types ────────────────────────────────────────────────────────
 
 export type Profile = {
@@ -53,6 +57,15 @@ export type PollVote = {
   option_id: string
   question_id: string
   user_id: string
+  created_at: string
+}
+
+export type Rsvp = {
+  id: string
+  event_id: string
+  user_id: string
+  status: RsvpStatus
+  drinking_preference: DrinkingPreference
   created_at: string
 }
 
@@ -99,12 +112,22 @@ export type Database = {
         }
         Update: never
       }
+      rsvps: {
+        Row: Rsvp
+        Insert: Omit<Rsvp, "id" | "created_at"> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Pick<Rsvp, "status" | "drinking_preference">>
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
     Enums: {
       event_type: EventType
       question_type: QuestionType
+      rsvp_status: RsvpStatus
+      drinking_preference: DrinkingPreference
     }
   }
 }
