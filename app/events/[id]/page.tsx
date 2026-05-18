@@ -23,7 +23,9 @@ const fetchEvent = cache(async (id: string) => {
       organiser:profiles!events_organiser_id_fkey(id, display_name, avatar_url),
       rsvps(id, status, user_id, profiles(display_name, avatar_url)),
       poll_questions(id, question_text, question_type,
-        poll_options(id, option_text)
+        poll_options(id, option_text,
+          poll_votes(id, user_id)
+        )
       ),
       event_stops(id, name, address, lat, lng, "order"),
       memories(id, storage_path, media_type, caption, created_at)
@@ -94,7 +96,7 @@ export default async function EventPage({ params, searchParams }: Props) {
       />
 
       {/* Polls */}
-      <PollSection questions={pollQuestions} />
+      <PollSection questions={pollQuestions} currentUserId={user.id} />
 
       {/* Map route */}
       <MapSection stops={stops} />
