@@ -1,6 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
-import { Check, X, HelpCircle } from "lucide-react"
+import { Check, X, HelpCircle, Wine, CupSoda } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import type { Tables, Enums } from "@/types"
@@ -9,25 +9,60 @@ import type { Tables, Enums } from "@/types"
 
 type Profile = Pick<Tables<"profiles">, "display_name" | "avatar_url">
 
-type Rsvp = Pick<Tables<"rsvps">, "id" | "status" | "user_id"> & {
+type Rsvp = Pick<Tables<"rsvps">, "id" | "status" | "drinking_preference" | "user_id"> & {
   profiles: Profile | null
 }
 
 type Props = {
-  rsvps: Rsvp[]
-  eventId: string
-  currentUserId: string
+  rsvps:           Rsvp[]
+  eventId:         string
+  currentUserId:   string
+  isAlcoholFriendly: boolean
 }
 
 // ── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
   Enums<"rsvp_status">,
-  { label: string; icon: React.ElementType; chipClass: string; iconClass: string }
+  {
+    label:        string
+    sentence:     string
+    icon:         React.ElementType
+    chipClass:    string
+    iconClass:    string
+    confirmClass: string
+  }
 > = {
-  yes:   { label: "Going",    icon: Check,       chipClass: "bg-green-100 text-green-700", iconClass: "text-green-600" },
-  maybe: { label: "Maybe",    icon: HelpCircle,  chipClass: "bg-amber-100 text-amber-700", iconClass: "text-amber-500" },
-  no:    { label: "Declined", icon: X,           chipClass: "bg-red-100   text-red-700",   iconClass: "text-red-500"   },
+  yes:   {
+    label:        "Going",
+    sentence:     "You are going",
+    icon:         Check,
+    chipClass:    "bg-green-100 text-green-700",
+    iconClass:    "text-green-600",
+    confirmClass: "border-green-200 bg-green-50 text-green-800",
+  },
+  maybe: {
+    label:        "Maybe",
+    sentence:     "You said maybe",
+    icon:         HelpCircle,
+    chipClass:    "bg-amber-100 text-amber-700",
+    iconClass:    "text-amber-500",
+    confirmClass: "border-amber-200 bg-amber-50 text-amber-800",
+  },
+  no:    {
+    label:        "Can't make it",
+    sentence:     "You are not going",
+    icon:         X,
+    chipClass:    "bg-red-100 text-red-700",
+    iconClass:    "text-red-500",
+    confirmClass: "border-red-200 bg-red-50 text-red-800",
+  },
+}
+
+const DRINKING_LABEL: Record<Enums<"drinking_preference">, { label: string; icon: React.ElementType }> = {
+  yes:   { label: "You'll be drinking",      icon: Wine    },
+  maybe: { label: "Drinking: not sure yet",  icon: Wine    },
+  no:    { label: "Not drinking",            icon: CupSoda },
 }
 
 // ── Mini avatar ───────────────────────────────────────────────────────────────
@@ -105,17 +140,58 @@ function StatusGroup({ status, rsvps }: { status: Enums<"rsvp_status">; rsvps: R
   )
 }
 
+// ── My RSVP confirmation ──────────────────────────────────────────────────────
+
+function MyRsvpConfirmation({
+  rsvp,
+  eventId,
+  isAlcoholFriendly,
+}: {
+  rsvp: Rsvp
+  eventId: string
+  isAlcoholFriendly: boolean
+}) {
+  const cfg              = STATUS_CONFIG[rsvp.status]
+  const Icon             = cfg.icon
+  const drinkingCfg      = DRINKING_LABEL[rsvp.drinking_preference]
+  const DrinkIcon        = drinkingCfg.icon
+  const showDrinking     = isAlcoholFriendly
+
+  return (
+    <div className={cn("rounded-xl border px-4 py-3 space-y-2", cfg.confirmClass)}>
+      {/* Status sentence */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="text-sm font-semibold">{cfg.sentence}</span>
+        </div>
+        <Button asChild size="sm" variant="outline" className="shrink-0 h-7 text-xs px-2.5">
+          <Link href={`/events/${eventId}/rsvp`}>Change RSVP</Link>
+        </Button>
+      </div>
+
+      {/* Drinking preference */}
+      {showDrinking && (
+        <div className="flex items-center gap-1.5 text-xs opacity-80">
+          <DrinkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>{drinkingCfg.label}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function RsvpStrip({ rsvps, eventId, currentUserId }: Props) {
+export function RsvpStrip({ rsvps, eventId, currentUserId, isAlcoholFriendly }: Props) {
   const byStatus = {
     yes:   rsvps.filter((r) => r.status === "yes"),
     maybe: rsvps.filter((r) => r.status === "maybe"),
     no:    rsvps.filter((r) => r.status === "no"),
   }
 
-  const myRsvp      = rsvps.find((r) => r.user_id === currentUserId)
-  const totalGoing  = byStatus.yes.length + byStatus.maybe.length
+  const myRsvp     = rsvps.find((r) => r.user_id === currentUserId)
+  const totalGoing = byStatus.yes.length + byStatus.maybe.length
 
   return (
     <section aria-labelledby="rsvp-heading" className="rounded-xl border bg-card p-4 space-y-4">
@@ -130,11 +206,11 @@ export function RsvpStrip({ rsvps, eventId, currentUserId }: Props) {
             </p>
           )}
         </div>
-        <Button asChild size="sm" variant={myRsvp ? "outline" : "default"}>
-          <Link href={`/events/${eventId}/rsvp`}>
-            {myRsvp ? "Change RSVP" : "RSVP now"}
-          </Link>
-        </Button>
+        {!myRsvp && (
+          <Button asChild size="sm">
+            <Link href={`/events/${eventId}/rsvp`}>RSVP now</Link>
+          </Button>
+        )}
       </div>
 
       {/* Status groups */}
@@ -144,15 +220,13 @@ export function RsvpStrip({ rsvps, eventId, currentUserId }: Props) {
         ))}
       </div>
 
-      {/* Current user's RSVP */}
+      {/* Current user's RSVP confirmation */}
       {myRsvp && (
-        <div className={cn(
-          "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium",
-          STATUS_CONFIG[myRsvp.status].chipClass
-        )}>
-          {(() => { const Icon = STATUS_CONFIG[myRsvp.status].icon; return <Icon className="h-3.5 w-3.5" aria-hidden="true" /> })()}
-          Your RSVP: {STATUS_CONFIG[myRsvp.status].label}
-        </div>
+        <MyRsvpConfirmation
+          rsvp={myRsvp}
+          eventId={eventId}
+          isAlcoholFriendly={isAlcoholFriendly}
+        />
       )}
     </section>
   )

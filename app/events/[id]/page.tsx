@@ -21,7 +21,7 @@ const fetchEvent = cache(async (id: string) => {
       id, title, description, type, date, alcohol_friendly, share_token,
       organiser_id, created_at,
       organiser:profiles!events_organiser_id_fkey(id, display_name, avatar_url),
-      rsvps(id, status, user_id, profiles(display_name, avatar_url)),
+      rsvps(id, status, drinking_preference, user_id, profiles(display_name, avatar_url)),
       poll_questions(id, question_text, question_type,
         poll_options(id, option_text,
           poll_votes(id, user_id)
@@ -93,6 +93,7 @@ export default async function EventPage({ params, searchParams }: Props) {
         rsvps={rsvps}
         eventId={event.id}
         currentUserId={user.id}
+        isAlcoholFriendly={event.alcohol_friendly ?? false}
       />
 
       {/* Polls */}
