@@ -142,5 +142,5 @@ export async function createEvent(
 
   // ── 4. Redirect to new event page ─────────────────────────────────────────
 
-  redirect(`/events/${eventId}`)
+  redirect(`/events/${eventId}?created=1`)
 }
