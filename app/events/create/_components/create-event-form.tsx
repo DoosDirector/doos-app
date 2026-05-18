@@ -123,7 +123,7 @@ export function CreateEventForm() {
           />
         )}
         {step === 1 && <StepPollBuilder data={data} onChange={update} />}
-        {step === 2 && <StepMapStops />}
+        {step === 2 && <StepMapStops data={data} onChange={update} />}
       </div>
 
       <div className="flex items-center justify-between">
