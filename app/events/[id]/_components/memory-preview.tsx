@@ -33,7 +33,7 @@ export async function MemoryPreview({ memories, eventId }: Props) {
         <div className="flex items-center gap-3">
           {memories.length > 0 && (
             <Link
-              href={`/events/${eventId}/memories`}
+              href={`/events/${eventId}/memory-box`}
               className="text-xs font-medium text-brand-primary hover:underline"
             >
               View all ({memories.length})
@@ -50,7 +50,7 @@ export async function MemoryPreview({ memories, eventId }: Props) {
             No memories yet — photos and videos will appear here after the event.
           </p>
           <Link
-            href={`/events/${eventId}/memories/upload`}
+            href={`/events/${eventId}/memory-box/upload`}
             className="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-4 py-2 text-sm font-medium text-white hover:bg-brand-primary/90 transition-colors"
           >
             <PlusCircle className="h-4 w-4" aria-hidden="true" />
@@ -98,7 +98,7 @@ export async function MemoryPreview({ memories, eventId }: Props) {
 
           {/* ── Upload CTA ── */}
           <Link
-            href={`/events/${eventId}/memories/upload`}
+            href={`/events/${eventId}/memory-box/upload`}
             className="flex items-center justify-center gap-2 rounded-xl border border-dashed py-3 text-sm font-medium text-muted-foreground hover:border-brand-primary hover:text-brand-primary transition-colors"
           >
             <PlusCircle className="h-4 w-4" aria-hidden="true" />
