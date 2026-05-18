@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
-import { Check } from "lucide-react"
+import { useState, useTransition } from "react"
+import { Check, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { StepBasicDetails } from "./step-basic-details"
 import { StepPollBuilder } from "./step-poll-builder"
 import { StepMapStops } from "./step-map-stops"
+import { createEvent } from "@/lib/actions/events"
 import type { EventType } from "@/types"
 
 // ── Form state ────────────────────────────────────────────────────────────────
@@ -91,6 +93,7 @@ export function CreateEventForm() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState<CreateEventData>(INITIAL_DATA)
   const [step1Attempted, setStep1Attempted] = useState(false)
+  const [isPending, startTransition] = useTransition()
 
   function update(partial: Partial<CreateEventData>) {
     setData((prev) => ({ ...prev, ...partial }))
@@ -109,6 +112,26 @@ export function CreateEventForm() {
   function handleBack() {
     setStep((s) => Math.max(s - 1, 0))
   }
+
+  function handleSubmit() {
+    startTransition(async () => {
+      const result = await createEvent({
+        title:           data.title,
+        description:     data.description || undefined,
+        date:            data.date || undefined,
+        type:            data.type,
+        alcoholFriendly: data.alcoholFriendly,
+        pollQuestions:   data.pollQuestions,
+        stops:           data.stops,
+      })
+      // result is only defined on error; success triggers a redirect
+      if (result?.error) {
+        toast.error("Could not create Doo", { description: result.error })
+      }
+    })
+  }
+
+  const isLastStep = step === STEPS.length - 1
 
   return (
     <div className="space-y-6">
@@ -131,18 +154,30 @@ export function CreateEventForm() {
           type="button"
           variant="outline"
           onClick={handleBack}
-          disabled={step === 0}
+          disabled={step === 0 || isPending}
         >
           Back
         </Button>
 
-        {step < STEPS.length - 1 ? (
-          <Button type="button" onClick={handleNext}>
+        {!isLastStep ? (
+          <Button type="button" onClick={handleNext} disabled={isPending}>
             Next
           </Button>
         ) : (
-          <Button type="button" disabled>
-            Create Doo
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="min-w-[110px]"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Creating…
+              </>
+            ) : (
+              "Create Doo"
+            )}
           </Button>
         )}
       </div>
