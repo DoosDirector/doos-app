@@ -7,6 +7,7 @@ import { EventHeader }    from "./_components/event-header"
 import { RsvpStrip }      from "./_components/rsvp-strip"
 import { PollSection }    from "./_components/poll-section"
 import { MapSection }     from "./_components/map-section"
+import { AttendeeList }   from "./_components/attendee-list"
 import { MemoryPreview }  from "./_components/memory-preview"
 import { ShareButton }    from "./_components/share-button"
 import { CreatedToast }   from "./_components/created-toast"
@@ -92,6 +93,15 @@ export default async function EventPage({ params, searchParams }: Props) {
       <RsvpStrip
         rsvps={rsvps}
         eventId={event.id}
+        currentUserId={user.id}
+        isAlcoholFriendly={event.alcohol_friendly ?? false}
+      />
+
+      {/* Attendee list */}
+      <AttendeeList
+        rsvps={rsvps}
+        eventId={event.id}
+        organiserId={event.organiser_id}
         currentUserId={user.id}
         isAlcoholFriendly={event.alcohol_friendly ?? false}
       />
