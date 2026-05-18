@@ -144,3 +144,30 @@ export async function createEvent(
 
   redirect(`/events/${eventId}?created=1`)
 }
+
+// ── castVote ──────────────────────────────────────────────────────────────────
+// Upsert a poll vote: delete any existing vote for this question, then insert.
+// DB has no UPDATE policy on poll_votes (unique constraint: user + question).
+
+export async function castVote(
+  optionId:   string,
+  questionId: string,
+): Promise<{ error: string } | void> {
+  const user     = await requireUser()
+  const supabase = await createClient()
+
+  // Delete existing vote for this question (no-op if not yet voted)
+  const { error: delErr } = await supabase
+    .from("poll_votes")
+    .delete()
+    .eq("user_id",     user.id)
+    .eq("question_id", questionId)
+
+  if (delErr) return { error: delErr.message }
+
+  const { error: insErr } = await supabase
+    .from("poll_votes")
+    .insert({ option_id: optionId, question_id: questionId, user_id: user.id })
+
+  if (insErr) return { error: insErr.message }
+}

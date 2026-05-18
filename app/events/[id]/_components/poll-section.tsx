@@ -4,6 +4,7 @@ import { useState, useTransition } from "react"
 import { CheckCircle2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { castVote } from "@/lib/actions/events"
 import type { Tables } from "@/types"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -59,13 +60,17 @@ function PollCard({
     if (isPending || votedOptionId === optionId) return
 
     // Optimistic update
+    const previous = votedOptionId
     setVotedOptionId(optionId)
 
     startTransition(async () => {
-      // TODO (Task 51): replace with castVote(optionId, question.id) server action
-      toast.info("Voting coming soon", {
-        description: "Live voting will be enabled in the next update.",
-      })
+      const result = await castVote(optionId, question.id)
+      if (result?.error) {
+        setVotedOptionId(previous) // roll back optimistic update
+        toast.error("Couldn't save your vote", { description: result.error })
+      } else {
+        toast.success("Vote recorded!", { description: "Your choice has been saved." })
+      }
     })
   }
 
