@@ -171,3 +171,37 @@ export async function castVote(
 
   if (insErr) return { error: insErr.message }
 }
+
+// ── upsertRsvp ────────────────────────────────────────────────────────────────
+
+const RsvpSchema = z.object({
+  eventId:            z.string().uuid(),
+  status:             z.enum(["yes", "no", "maybe"]),
+  drinkingPreference: z.enum(["yes", "no", "maybe"]),
+})
+
+export async function upsertRsvp(
+  input: z.infer<typeof RsvpSchema>
+): Promise<{ error: string } | void> {
+  const parsed = RsvpSchema.safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
+
+  const user     = await requireUser()
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from("rsvps")
+    .upsert(
+      {
+        event_id:            parsed.data.eventId,
+        user_id:             user.id,
+        status:              parsed.data.status,
+        drinking_preference: parsed.data.drinkingPreference,
+      },
+      { onConflict: "user_id, event_id" }
+    )
+
+  if (error) return { error: error.message }
+
+  redirect(`/events/${parsed.data.eventId}`)
+}
