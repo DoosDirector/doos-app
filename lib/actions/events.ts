@@ -207,6 +207,56 @@ export async function upsertRsvp(
   redirect(`/events/${parsed.data.eventId}`)
 }
 
+// ── addEventStop ──────────────────────────────────────────────────────────────
+
+const AddStopSchema = z.object({
+  eventId:  z.string().uuid("Invalid event ID"),
+  name:     z.string().min(1).max(200),
+  address:  z.string().max(400),
+  lat:      z.number(),
+  lng:      z.number(),
+  placeId:  z.string().max(300).optional(),
+})
+
+export async function addEventStop(
+  input: z.infer<typeof AddStopSchema>,
+): Promise<{ error: string; id?: undefined } | { id: string; error?: undefined }> {
+  const parsed = AddStopSchema.safeParse(input)
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
+
+  await requireUser()
+  const supabase = await createClient()
+
+  // Determine next order index
+  const { data: existing } = await supabase
+    .from("event_stops")
+    .select("order")
+    .eq("event_id", parsed.data.eventId)
+    .order("order", { ascending: false })
+    .limit(1)
+
+  const nextOrder = existing && existing.length > 0 ? (existing[0].order ?? 0) + 1 : 0
+
+  const { data, error } = await supabase
+    .from("event_stops")
+    .insert({
+      event_id: parsed.data.eventId,
+      place_id: parsed.data.placeId ?? null,
+      name:     parsed.data.name,
+      address:  parsed.data.address,
+      lat:      parsed.data.lat,
+      lng:      parsed.data.lng,
+      order:    nextOrder,
+    })
+    .select("id")
+    .single()
+
+  if (error || !data) return { error: error?.message ?? "Failed to add stop" }
+
+  revalidatePath(`/events/${parsed.data.eventId}`)
+  return { id: data.id }
+}
+
 // ── deleteEventStop ───────────────────────────────────────────────────────────
 
 export async function deleteEventStop(

@@ -6,8 +6,10 @@ import { useEffect, useRef, useState, useTransition } from "react"
 import { MapPin, Loader2, Trash2, ChevronUp, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { deleteEventStop, reorderEventStops } from "@/lib/actions/events"
+import { addEventStop, deleteEventStop, reorderEventStops } from "@/lib/actions/events"
 import type { Tables } from "@/types"
+import { RecommendedPlaces } from "./recommended-places"
+import type { PlaceResult } from "@/components/place-search"
 
 type Stop = Pick<Tables<"event_stops">, "id" | "name" | "address" | "lat" | "lng" | "order">
 
@@ -278,6 +280,20 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
     })
   }
 
+  async function handleAdd(place: PlaceResult) {
+    const tempId  = `temp-${Date.now()}`
+    const newStop = { id: tempId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, order: localStops.length }
+    setLocalStops((prev) => [...prev, newStop])
+    const result = await addEventStop({ eventId, ...place })
+    if (result.error) {
+      setLocalStops((prev) => prev.filter((s) => s.id !== tempId))
+      toast.error("Couldn't add stop", { description: result.error })
+    } else {
+      setLocalStops((prev) => prev.map((s) => s.id === tempId ? { ...s, id: result.id! } : s))
+      toast.success(`${place.name} added to your route`)
+    }
+  }
+
   function handleMove(i: number, dir: -1 | 1) {
     const j = i + dir
     if (j < 0 || j >= localStops.length) return
@@ -336,6 +352,15 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
           stops={localStops} isOrganiser={isOrganiser}
           isPending={isPending} onRemove={handleRemove} onMove={handleMove}
         />
+
+        {isOrganiser && localStops.length > 0 && (
+          <RecommendedPlaces
+            lat={localStops[0].lat ?? 51.5074}
+            lng={localStops[0].lng ?? -0.1278}
+            apiLoaded={apiLoaded}
+            onAdd={handleAdd}
+          />
+        )}
       </div>
     </section>
   )
