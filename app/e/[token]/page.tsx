@@ -68,6 +68,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = buildDescription(event)
   const shareUrl    = `/e/${token}`
 
+  const ogImage = `/api/og/event/${event.id}`
+
   return {
     title:       event.title,
     description,
@@ -76,11 +78,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url:         shareUrl,
       type:        "website",
+      images:      [{ url: ogImage, width: 1200, height: 630, alt: event.title }],
     },
     twitter: {
-      card:        "summary",
+      card:        "summary_large_image",
       title:       event.title,
       description,
+      images:      [ogImage],
     },
   }
 }
