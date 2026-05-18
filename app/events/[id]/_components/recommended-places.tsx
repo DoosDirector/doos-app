@@ -106,7 +106,7 @@ function PlaceCard({
 
         {/* Address */}
         {place.address && (
-          <p className="truncate text-[11px] text-muted-foreground/70">{place.address}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{place.address}</p>
         )}
 
         {/* Type + rating row */}

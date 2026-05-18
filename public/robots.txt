@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Public shareable event pages are indexable
+Allow: /e/
+
+# Auth and private routes should not be indexed
+Disallow: /auth/
+Disallow: /dashboard
+Disallow: /events/
+
+Sitemap: https://doos.app/sitemap.xml

@@ -266,7 +266,7 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
           <p className="mt-0.5 text-xs text-muted-foreground">
             or <span className="text-brand-primary font-medium">tap to choose files</span>
           </p>
-          <p className="mt-2 text-[11px] text-muted-foreground/70">
+          <p className="mt-2 text-[11px] text-muted-foreground">
             JPG, PNG, WEBP, GIF, MP4, MOV, WEBM · max {MAX_MB} MB each · up to {MAX_FILES} files
           </p>
         </div>

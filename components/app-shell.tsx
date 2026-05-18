@@ -135,7 +135,7 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* ── Page content ────────────────────────────────────────────────── */}
-      <main className="mx-auto w-full max-w-screen-lg flex-1 px-4 pb-20 pt-6 md:pb-6">
+      <main id="main-content" className="mx-auto w-full max-w-screen-lg flex-1 px-4 pb-20 pt-6 md:pb-6">
         {children}
       </main>
 
