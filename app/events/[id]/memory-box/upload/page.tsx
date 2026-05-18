@@ -4,7 +4,8 @@ import type { Metadata } from "next"
 import { ChevronLeft } from "lucide-react"
 import { requireUser }  from "@/lib/auth/guard"
 import { createClient } from "@/lib/supabase/server"
-import { UploadForm }   from "../_components/upload-form"
+import { UploadForm }    from "../_components/upload-form"
+import { uploadMemory } from "@/lib/actions/events"
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -45,7 +46,7 @@ export default async function UploadPage({ params }: Props) {
       </div>
 
       {/* Upload form */}
-      <UploadForm eventId={event.id} />
+      <UploadForm eventId={event.id} uploadMemory={uploadMemory} />
     </div>
   )
 }

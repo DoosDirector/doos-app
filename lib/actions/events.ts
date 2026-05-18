@@ -250,3 +250,85 @@ export async function reorderEventStops(
 
   revalidatePath(`/events/${eventId}`)
 }
+
+// ── uploadMemory ──────────────────────────────────────────────────────────────
+
+const ALLOWED_MIMES = [
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "video/mp4", "video/quicktime", "video/webm",
+] as const
+
+const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50 MB
+
+const UploadSchema = z.object({
+  eventId:  z.string().uuid("Invalid event ID"),
+  caption:  z.string().max(140, "Caption must be 140 characters or fewer"),
+  fileType: z
+    .string()
+    .refine((t): t is typeof ALLOWED_MIMES[number] => ALLOWED_MIMES.includes(t as never), {
+      message: "Unsupported file type — use JPG, PNG, WEBP, GIF, MP4, MOV, or WEBM",
+    }),
+  fileSize: z.number().max(MAX_FILE_BYTES, "File must be smaller than 50 MB"),
+})
+
+function sanitizeFilename(name: string): string {
+  const ext  = name.split(".").pop()?.toLowerCase() ?? "bin"
+  const base = name
+    .replace(/\.[^.]+$/, "")        // strip extension
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")    // only safe chars
+    .replace(/-+/g, "-")            // collapse consecutive dashes
+    .slice(0, 80)                   // cap length
+  return `${base || "file"}.${ext}`
+}
+
+export async function uploadMemory(
+  formData: FormData,
+): Promise<{ error: string } | void> {
+  const file    = formData.get("file")
+  const eventId = formData.get("eventId")
+  const caption = formData.get("caption")
+
+  if (!(file instanceof File))      return { error: "No file provided" }
+  if (typeof eventId !== "string")  return { error: "Missing event ID" }
+
+  const parsed = UploadSchema.safeParse({
+    eventId:  eventId.trim(),
+    caption:  typeof caption === "string" ? caption.trim() : "",
+    fileType: file.type,
+    fileSize: file.size,
+  })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
+
+  const user     = await requireUser()
+  const supabase = await createClient()
+
+  // Storage path: events/<eventId>/<timestamp>-<safe-filename>
+  const safeName    = sanitizeFilename(file.name)
+  const storagePath = `events/${parsed.data.eventId}/${Date.now()}-${safeName}`
+
+  const { error: uploadErr } = await supabase.storage
+    .from("memories")
+    .upload(storagePath, file, { contentType: file.type, upsert: false })
+
+  if (uploadErr) return { error: uploadErr.message }
+
+  const mediaType: "image" | "video" = file.type.startsWith("video/") ? "video" : "image"
+
+  const { error: insertErr } = await supabase.from("memories").insert({
+    event_id:     parsed.data.eventId,
+    uploader_id:  user.id,
+    storage_path: storagePath,
+    media_type:   mediaType,
+    caption:      parsed.data.caption || null,
+  })
+
+  if (insertErr) {
+    // Roll back the storage upload if the DB insert fails
+    await supabase.storage.from("memories").remove([storagePath])
+    return { error: insertErr.message }
+  }
+
+  revalidatePath(`/events/${parsed.data.eventId}`)
+  revalidatePath(`/events/${parsed.data.eventId}/memory-box`)
+}

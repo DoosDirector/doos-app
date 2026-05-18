@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { UploadCloud, X, ImageIcon, Film, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -111,6 +112,7 @@ function FileCard({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function UploadForm({ eventId, uploadMemory }: Props) {
+  const router   = useRouter()
   const [files, setFiles]         = useState<FileEntry[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -214,6 +216,7 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
         { description: "Your photos and videos have been saved." }
       )
       setFiles([])
+      router.push(`/events/${eventId}/memory-box`)
     })
   }
 
