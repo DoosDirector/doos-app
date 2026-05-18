@@ -10,7 +10,10 @@ const inter = Inter({
   display: "swap",
 })
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://doos.app"
+
 export const metadata: Metadata = {
+  metadataBase: new URL(APP_URL),
   title: {
     default: "Doo's – Team Events Made Easy",
     template: "%s – Doo's",
@@ -18,6 +21,14 @@ export const metadata: Metadata = {
   description:
     "Organise team nights out, lunches, and activities with polls, maps, RSVPs, and a shared Memory Box.",
   manifest: "/manifest.json",
+  openGraph: {
+    siteName: "Doo's",
+    type:     "website",
+    locale:   "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 }
 
 export const viewport: Viewport = {

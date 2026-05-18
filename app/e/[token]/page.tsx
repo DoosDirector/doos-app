@@ -3,8 +3,8 @@ import { notFound } from "next/navigation"
 import Link          from "next/link"
 import type { Metadata } from "next"
 import {
-  CalendarDays, MapPin, Users, BarChart2,
-  Martini, CupSoda, LogIn, ArrowRight,
+  MapPin, Users, BarChart2,
+  LogIn, ArrowRight,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import { getUser }      from "@/lib/auth/guard"
@@ -37,6 +37,27 @@ const fetchEventByToken = cache(async (token: string) => {
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  night_out:     "Night out",
+  lunch:         "Lunch",
+  coffee:        "Coffee",
+  team_building: "Team building",
+  activity:      "Activity",
+  other:         "Event",
+}
+
+function buildDescription(event: { title: string; description: string | null; type: string; date: string | null }): string {
+  if (event.description) return event.description
+  const typeLabel = EVENT_TYPE_LABEL[event.type] ?? "Event"
+  if (event.date) {
+    const formatted = new Date(event.date).toLocaleDateString("en-GB", {
+      weekday: "short", day: "numeric", month: "short",
+    })
+    return `${typeLabel} on ${formatted} — join on Doo's.`
+  }
+  return `${typeLabel} — join on Doo's.`
+}
+
 type Props = { params: Promise<{ token: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -44,16 +65,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const event     = await fetchEventByToken(token)
   if (!event) return { title: "Event not found" }
 
-  const description = event.description
-    ?? `Join ${event.title} — organised on Doo.`
+  const description = buildDescription(event)
+  const shareUrl    = `/e/${token}`
 
   return {
-    title:       `${event.title} — Doo`,
+    title:       event.title,
     description,
     openGraph: {
       title:       event.title,
       description,
+      url:         shareUrl,
       type:        "website",
+    },
+    twitter: {
+      card:        "summary",
+      title:       event.title,
+      description,
     },
   }
 }
