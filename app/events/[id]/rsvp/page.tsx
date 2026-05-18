@@ -19,7 +19,7 @@ export default async function RsvpPage({ params }: Props) {
   const supabase = await createClient()
 
   // Fetch event (title + alcohol flag) and current user's RSVP in parallel
-  const [{ data: event }, { data: existingRsvp }] = await Promise.all([
+  const [eventResult, rsvpResult] = await Promise.all([
     supabase
       .from("events")
       .select("id, title, alcohol_friendly")
@@ -32,6 +32,12 @@ export default async function RsvpPage({ params }: Props) {
       .eq("user_id", user.id)
       .maybeSingle(),
   ])
+
+  if (eventResult.error && eventResult.error.code !== "PGRST116") throw new Error(eventResult.error.message)
+  if (rsvpResult.error) throw new Error(rsvpResult.error.message)
+
+  const event       = eventResult.data
+  const existingRsvp = rsvpResult.data
 
   if (!event) notFound()
 

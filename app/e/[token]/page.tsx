@@ -16,7 +16,7 @@ import { ShareButton }  from "@/app/events/[id]/_components/share-button"
 
 const fetchEventByToken = cache(async (token: string) => {
   const supabase = await createClient(true) // service role — no RLS needed for public preview
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select(`
       id, title, description, type, date, alcohol_friendly, share_token,
@@ -33,6 +33,7 @@ const fetchEventByToken = cache(async (token: string) => {
     `)
     .eq("share_token", token)
     .single()
+  if (error && error.code !== "PGRST116") throw new Error(error.message)
   return data
 })
 

@@ -20,12 +20,13 @@ export default async function UploadPage({ params }: Props) {
   const [{ id }] = await Promise.all([params, requireUser()])
 
   const supabase = await createClient(true)
-  const { data: event } = await supabase
+  const { data: event, error: eventErr } = await supabase
     .from("events")
     .select("id, title")
     .eq("id", id)
     .single()
 
+  if (eventErr && eventErr.code !== "PGRST116") throw new Error(eventErr.message)
   if (!event) notFound()
 
   return (

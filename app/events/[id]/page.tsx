@@ -17,7 +17,7 @@ import { RsvpToast }     from "./_components/rsvp-toast"
 
 const fetchEvent = cache(async (id: string) => {
   const supabase = await createClient()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("events")
     .select(`
       id, title, description, type, date, alcohol_friendly, share_token,
@@ -34,6 +34,8 @@ const fetchEvent = cache(async (id: string) => {
     `)
     .eq("id", id)
     .single()
+  // PGRST116 = no rows returned — treat as 404; anything else is a real error
+  if (error && error.code !== "PGRST116") throw new Error(error.message)
   return data
 })
 

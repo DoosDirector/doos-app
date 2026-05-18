@@ -23,7 +23,7 @@ export default async function MemoryBoxPage({ params }: Props) {
 
   const supabase = await createClient(true)
 
-  const [{ data: event }, { data: rawMemories }] = await Promise.all([
+  const [eventResult, memoriesResult] = await Promise.all([
     supabase.from("events").select("id, title, share_token, organiser_id").eq("id", id).single(),
     supabase
       .from("memories")
@@ -31,6 +31,12 @@ export default async function MemoryBoxPage({ params }: Props) {
       .eq("event_id", id)
       .order("created_at", { ascending: false }),
   ])
+
+  if (eventResult.error && eventResult.error.code !== "PGRST116") throw new Error(eventResult.error.message)
+  if (memoriesResult.error) throw new Error(memoriesResult.error.message)
+
+  const event      = eventResult.data
+  const rawMemories = memoriesResult.data
 
   if (!event) notFound()
 
