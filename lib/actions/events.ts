@@ -6,35 +6,8 @@ import { z } from "zod"
 import { requireUser } from "@/lib/auth/guard"
 import { createClient } from "@/lib/supabase/server"
 import type { TablesInsert } from "@/types"
-
-// ── Zod schemas ───────────────────────────────────────────────────────────────
-
-const StopSchema = z.object({
-  placeId: z.string(),
-  name:    z.string().min(1),
-  address: z.string(),
-  lat:     z.number(),
-  lng:     z.number(),
-})
-
-const QuestionSchema = z.object({
-  text:    z.string().min(1, "Question text is required").max(200),
-  type:    z.enum(["single", "multiple"]),
-  options: z.array(z.string().min(1).max(120)).min(2).max(8),
-})
-
-export const CreateEventSchema = z.object({
-  title:           z.string().trim().min(1, "Title is required").max(120),
-  description:     z.string().trim().max(500).optional(),
-  // datetime-local string "YYYY-MM-DDTHH:mm" — stored as UTC (GMT/BST parity on server)
-  date:            z.string().optional(),
-  type:            z.enum(["night_out", "lunch", "coffee", "team_building", "activity", "other"]),
-  alcoholFriendly: z.boolean(),
-  pollQuestions:   z.array(QuestionSchema).max(10),
-  stops:           z.array(StopSchema).max(20),
-})
-
-export type CreateEventInput = z.infer<typeof CreateEventSchema>
+import { CreateEventSchema } from "./events-schema"
+import type { CreateEventInput } from "./events-schema"
 
 // ── Action ────────────────────────────────────────────────────────────────────
 
