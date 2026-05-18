@@ -32,7 +32,7 @@ type Props = {
 
 const TYPE_PRIORITY: Record<string, string> = {
   bar:                "Pub / Bar",
-  night_club:         "Night club",
+  night_club:         "Nightclub",
   restaurant:         "Restaurant",
   cafe:               "Café",
   bakery:             "Bakery",

@@ -166,7 +166,7 @@ export async function GET(
                 alignItems:      "center",
               }}
             >
-              🍸 Alcohol friendly
+              🍸 Alcohol-friendly
             </div>
           )}
         </div>
