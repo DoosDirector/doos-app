@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect, useMemo } from "react"
 import { CheckCircle2, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { castVote } from "@/lib/actions/events"
+import { createClient } from "@/lib/supabase/client"
 import type { Tables } from "@/types"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -37,6 +38,18 @@ function VoteBar({ pct, active }: { pct: number; active: boolean }) {
 
 // ── Single poll question card ─────────────────────────────────────────────────
 
+// Votes indexed by vote-id → { option_id, user_id } so we can handle both
+// INSERT (full new record) and DELETE (only old.id) realtime events accurately.
+type VoteEntry = { option_id: string; user_id: string }
+
+function buildInitialVoteMap(question: PollQuestion): Map<string, VoteEntry> {
+  const map = new Map<string, VoteEntry>()
+  question.poll_options.forEach((o) => {
+    o.poll_votes.forEach((v) => map.set(v.id, { option_id: o.id, user_id: v.user_id }))
+  })
+  return map
+}
+
 function PollCard({
   question,
   currentUserId,
@@ -44,29 +57,66 @@ function PollCard({
   question: PollQuestion
   currentUserId: string
 }) {
-  const totalVotes = question.poll_options.reduce(
-    (sum, o) => sum + o.poll_votes.length, 0
+  // Live vote map — updated via Realtime
+  const [voteMap, setVoteMap] = useState<Map<string, VoteEntry>>(
+    () => buildInitialVoteMap(question)
   )
 
-  // Track optimistic user-voted option (undefined = not voted yet or loading)
-  const initialVote = question.poll_options.find((o) =>
-    o.poll_votes.some((v) => v.user_id === currentUserId)
-  )?.id
+  const voteCountsByOption = useMemo(() => {
+    const counts: Record<string, number> = {}
+    question.poll_options.forEach((o) => { counts[o.id] = 0 })
+    for (const v of voteMap.values()) {
+      counts[v.option_id] = (counts[v.option_id] ?? 0) + 1
+    }
+    return counts
+  }, [voteMap, question.poll_options])
 
+  const totalVotes = voteMap.size
+
+  // Current user's voted option
+  const initialVote = [...voteMap.values()].find((v) => v.user_id === currentUserId)?.option_id
   const [votedOptionId, setVotedOptionId] = useState<string | undefined>(initialVote)
   const [isPending, startTransition]      = useTransition()
 
+  // ── Realtime subscription ──────────────────────────────────────────────────
+  useEffect(() => {
+    const supabase = createClient()
+    const channel  = supabase
+      .channel(`poll-votes:${question.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event:  "*",
+          schema: "public",
+          table:  "poll_votes",
+          filter: `question_id=eq.${question.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const r = payload.new as { id: string; option_id: string; user_id: string }
+            setVoteMap((m) => new Map(m).set(r.id, { option_id: r.option_id, user_id: r.user_id }))
+          } else if (payload.eventType === "DELETE") {
+            const id = (payload.old as { id: string }).id
+            setVoteMap((m) => { const next = new Map(m); next.delete(id); return next })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [question.id])
+
+  // ── Vote handler ───────────────────────────────────────────────────────────
   function handleVote(optionId: string) {
     if (isPending || votedOptionId === optionId) return
 
-    // Optimistic update
     const previous = votedOptionId
     setVotedOptionId(optionId)
 
     startTransition(async () => {
       const result = await castVote(optionId, question.id)
       if (result?.error) {
-        setVotedOptionId(previous) // roll back optimistic update
+        setVotedOptionId(previous)
         toast.error("Couldn't save your vote", { description: result.error })
       } else {
         toast.success("Vote recorded!", { description: "Your choice has been saved." })
@@ -87,7 +137,7 @@ function PollCard({
       {/* Options */}
       <ul className="space-y-3" role="list">
         {question.poll_options.map((option) => {
-          const count   = option.poll_votes.length
+          const count   = voteCountsByOption[option.id] ?? 0
           const pct     = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0
           const isVoted = votedOptionId === option.id
 
