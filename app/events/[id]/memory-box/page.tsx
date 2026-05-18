@@ -5,6 +5,7 @@ import { ChevronLeft, Camera, PlusCircle } from "lucide-react"
 import { requireUser }  from "@/lib/auth/guard"
 import { createClient } from "@/lib/supabase/server"
 import { MediaCard }    from "./_components/media-card"
+import { ShareButton }  from "../_components/share-button"
 
 const BUCKET = "memories"
 
@@ -23,7 +24,7 @@ export default async function MemoryBoxPage({ params }: Props) {
   const supabase = await createClient(true)
 
   const [{ data: event }, { data: rawMemories }] = await Promise.all([
-    supabase.from("events").select("id, title").eq("id", id).single(),
+    supabase.from("events").select("id, title, share_token").eq("id", id).single(),
     supabase
       .from("memories")
       .select("id, storage_path, media_type, caption, created_at, uploader_id, profiles:profiles!memories_uploader_id_fkey(display_name)")
@@ -125,6 +126,17 @@ export default async function MemoryBoxPage({ params }: Props) {
             <PlusCircle className="h-4 w-4" aria-hidden="true" />
             Add a memory
           </Link>
+
+          {/* ── Share memories ── */}
+          {event.share_token && (
+            <div className="rounded-xl border bg-card p-4 space-y-2">
+              <p className="text-sm font-medium">Share these memories</p>
+              <p className="text-xs text-muted-foreground">
+                Invite others to see the Memory Box and add their own photos and videos.
+              </p>
+              <ShareButton shareToken={event.share_token} eventTitle={event.title} />
+            </div>
+          )}
         </>
       )}
     </div>
