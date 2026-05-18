@@ -99,7 +99,11 @@ export default async function EventPage({ params, searchParams }: Props) {
       <PollSection questions={pollQuestions} currentUserId={user.id} />
 
       {/* Map route */}
-      <MapSection stops={stops} />
+      <MapSection
+        stops={stops}
+        eventId={event.id}
+        isOrganiser={event.organiser_id === user.id}
+      />
 
       {/* Memory box */}
       <MemoryPreview memories={memories} eventId={event.id} />
