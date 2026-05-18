@@ -3,9 +3,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useRef, useState } from "react"
-import { MapPin, X, ChevronUp, ChevronDown, Search, Loader2 } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { MapPin, X, ChevronUp, ChevronDown, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PlaceSearch } from "@/components/place-search"
+import type { PlaceResult } from "@/components/place-search"
 import type { CreateEventData } from "./create-event-form"
 
 type Stop = CreateEventData["stops"][number]
@@ -55,14 +56,11 @@ function StopItem({
 
 // ── Live map + autocomplete ───────────────────────────────────────────────────
 
-function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: Stop) => void }) {
-  const mapEl   = useRef<HTMLDivElement>(null)
-  const searchEl = useRef<HTMLInputElement>(null)
-  const mapRef  = useRef<any>(null)
-  const markersRef = useRef<any[]>([])
+function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResult) => void }) {
+  const mapEl       = useRef<HTMLDivElement>(null)
+  const mapRef      = useRef<any>(null)
+  const markersRef  = useRef<any[]>([])
   const dirRenderer = useRef<any>(null)
-  const callbackRef = useRef(onAddStop)
-  useEffect(() => { callbackRef.current = onAddStop })
 
   // Init map once
   useEffect(() => {
@@ -80,25 +78,6 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: Stop) => 
       polylineOptions: { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.8 },
     })
     dirRenderer.current.setMap(mapRef.current)
-  }, [])
-
-  // Init autocomplete once
-  useEffect(() => {
-    if (!searchEl.current || !mapRef.current) return
-    const G = (window as any).google.maps
-    const ac = new G.places.Autocomplete(searchEl.current, {
-      fields: ["place_id", "name", "geometry", "formatted_address"],
-    })
-    ac.addListener("place_changed", () => {
-      const place = ac.getPlace()
-      if (!place.geometry?.location) return
-      const lat = place.geometry.location.lat()
-      const lng = place.geometry.location.lng()
-      callbackRef.current({ placeId: place.place_id ?? "", name: place.name ?? "", address: place.formatted_address ?? "", lat, lng })
-      if (searchEl.current) searchEl.current.value = ""
-      mapRef.current.panTo({ lat, lng })
-    })
-    return () => G.event.clearInstanceListeners(ac)
   }, [])
 
   // Sync markers + directions when stops change
@@ -131,12 +110,14 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: Stop) => 
     }
   }, [stops])
 
+  function handleSelect(place: PlaceResult) {
+    onAddStop(place)
+    mapRef.current?.panTo({ lat: place.lat, lng: place.lng })
+  }
+
   return (
     <div className="space-y-3">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <Input ref={searchEl} placeholder="Search for a venue or place…" className="pl-9" aria-label="Search for a place" />
-      </div>
+      <PlaceSearch onSelect={handleSelect} />
       <div ref={mapEl} className="h-64 w-full overflow-hidden rounded-xl border" role="application" aria-label="Map" />
     </div>
   )
