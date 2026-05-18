@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useTransition } from "react"
 import Image from "next/image"
-import { PlayCircle, PauseCircle } from "lucide-react"
+import { PlayCircle, PauseCircle, Trash2 } from "lucide-react"
+import { toast } from "sonner"
+import { deleteMemory } from "@/lib/actions/events"
 
 type Props = {
   publicUrl:    string
@@ -10,11 +12,34 @@ type Props = {
   caption?:     string | null
   uploaderName?: string | null
   sizes?:       string
+  // Delete support — only rendered when canDelete is true
+  memoryId?:    string
+  eventId?:     string
+  canDelete?:   boolean
 }
 
-export function MediaCard({ publicUrl, mediaType, caption, uploaderName, sizes }: Props) {
-  const [isPlaying, setIsPlaying] = useState(false)
+export function MediaCard({ publicUrl, mediaType, caption, uploaderName, sizes, memoryId, eventId, canDelete }: Props) {
+  const [isPlaying,  setIsPlaying]  = useState(false)
+  const [isDeleted,  setIsDeleted]  = useState(false)
+  const [isPending,  startTransition] = useTransition()
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  function handleDelete() {
+    if (!memoryId || !eventId) return
+    startTransition(async () => {
+      const toastId = toast.loading("Deleting memory…")
+      const result  = await deleteMemory(memoryId, eventId)
+      toast.dismiss(toastId)
+      if (result?.error) {
+        toast.error("Couldn't delete memory", { description: result.error })
+      } else {
+        setIsDeleted(true)
+        toast.success("Memory deleted")
+      }
+    })
+  }
+
+  if (isDeleted) return null
 
   function togglePlay() {
     const v = videoRef.current
@@ -31,7 +56,7 @@ export function MediaCard({ publicUrl, mediaType, caption, uploaderName, sizes }
   const hasOverlay = caption || uploaderName
 
   return (
-    <div className="group relative aspect-square overflow-hidden rounded-xl bg-muted">
+    <div className={`group relative aspect-square overflow-hidden rounded-xl bg-muted transition-opacity ${isPending ? "opacity-50" : ""}`}>
       {mediaType === "image" ? (
         <Image
           src={publicUrl}
@@ -68,6 +93,19 @@ export function MediaCard({ publicUrl, mediaType, caption, uploaderName, sizes }
             )}
           </button>
         </>
+      )}
+
+      {/* Delete button — top-right, organiser/uploader only */}
+      {canDelete && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={isPending}
+          aria-label="Delete memory"
+          className="absolute right-1.5 top-1.5 z-10 rounded-full bg-black/60 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
       )}
 
       {/* Caption + uploader overlay */}

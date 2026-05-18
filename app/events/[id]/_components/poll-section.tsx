@@ -119,7 +119,7 @@ function PollCard({
         setVotedOptionId(previous)
         toast.error("Couldn't save your vote", { description: result.error })
       } else {
-        toast.success("Vote recorded!", { description: "Your choice has been saved." })
+        toast.success("Vote recorded!", { duration: 2000 })
       }
     })
   }

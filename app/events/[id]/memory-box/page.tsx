@@ -19,12 +19,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MemoryBoxPage({ params }: Props) {
-  const [{ id }] = await Promise.all([params, requireUser()])
+  const [{ id }, user] = await Promise.all([params, requireUser()])
 
   const supabase = await createClient(true)
 
   const [{ data: event }, { data: rawMemories }] = await Promise.all([
-    supabase.from("events").select("id, title, share_token").eq("id", id).single(),
+    supabase.from("events").select("id, title, share_token, organiser_id").eq("id", id).single(),
     supabase
       .from("memories")
       .select("id, storage_path, media_type, caption, created_at, uploader_id, profiles:profiles!memories_uploader_id_fkey(display_name)")
@@ -105,6 +105,8 @@ export default async function MemoryBoxPage({ params }: Props) {
                   ? (m.profiles[0] as { display_name: string | null }).display_name
                   : null
 
+              const canDelete = m.uploader_id === user.id || event.organiser_id === user.id
+
               return (
                 <div key={m.id} role="listitem">
                   <MediaCard
@@ -112,6 +114,9 @@ export default async function MemoryBoxPage({ params }: Props) {
                     mediaType={m.media_type as "image" | "video"}
                     caption={m.caption}
                     uploaderName={uploaderName}
+                    memoryId={m.id}
+                    eventId={id}
+                    canDelete={canDelete}
                   />
                 </div>
               )

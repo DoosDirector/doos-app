@@ -11,6 +11,7 @@ import { AttendeeList }   from "./_components/attendee-list"
 import { MemoryPreview }  from "./_components/memory-preview"
 import { ShareButton }    from "./_components/share-button"
 import { CreatedToast }   from "./_components/created-toast"
+import { RsvpToast }     from "./_components/rsvp-toast"
 
 // ── Cached data fetcher (shared between generateMetadata + page) ──────────────
 
@@ -105,7 +106,8 @@ export default async function EventPage({ params, searchParams }: Props) {
   const event = await fetchEvent(id)
   if (!event) notFound()
 
-  const justCreated = sp.created === "1"
+  const justCreated  = sp.created === "1"
+  const rsvpUpdated  = sp.rsvp    === "updated"
 
   // Normalise nested arrays (Supabase may return null for empty relations)
   const organiser     = Array.isArray(event.organiser)     ? event.organiser[0]     ?? null : event.organiser
@@ -119,7 +121,8 @@ export default async function EventPage({ params, searchParams }: Props) {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
-      {justCreated && <CreatedToast />}
+      {justCreated  && <CreatedToast />}
+      {rsvpUpdated  && <RsvpToast />}
 
       {/* Header */}
       <EventHeader

@@ -211,6 +211,10 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
       return
     }
 
+    const toastId = toast.loading(
+      files.length === 1 ? "Uploading memory…" : `Uploading ${files.length} memories…`
+    )
+
     startTransition(async () => {
       for (const entry of files) {
         const fd = new FormData()
@@ -220,10 +224,12 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
 
         const result = await uploadMemory(fd)
         if (result?.error) {
+          toast.dismiss(toastId)
           toast.error(`Failed to upload ${entry.file.name}`, { description: result.error })
           return
         }
       }
+      toast.dismiss(toastId)
       toast.success(
         files.length === 1 ? "Memory uploaded!" : `${files.length} memories uploaded!`,
         { description: "Your photos and videos have been saved." }

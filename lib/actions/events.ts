@@ -177,7 +177,7 @@ export async function upsertRsvp(
 
   if (error) return { error: error.message }
 
-  redirect(`/events/${parsed.data.eventId}`)
+  redirect(`/events/${parsed.data.eventId}?rsvp=updated`)
 }
 
 // ── addEventStop ──────────────────────────────────────────────────────────────
