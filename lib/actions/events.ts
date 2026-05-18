@@ -332,3 +332,53 @@ export async function uploadMemory(
   revalidatePath(`/events/${parsed.data.eventId}`)
   revalidatePath(`/events/${parsed.data.eventId}/memory-box`)
 }
+
+// ── deleteMemory ──────────────────────────────────────────────────────────────
+
+export async function deleteMemory(
+  memoryId: string,
+  eventId:  string,
+): Promise<{ error: string } | void> {
+  const parsed = z.object({
+    memoryId: z.string().uuid("Invalid memory ID"),
+    eventId:  z.string().uuid("Invalid event ID"),
+  }).safeParse({ memoryId, eventId })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" }
+
+  const user     = await requireUser()
+  const supabase = await createClient()
+
+  // Fetch the memory row — also confirms it exists and belongs to the event
+  const { data: memory, error: fetchErr } = await supabase
+    .from("memories")
+    .select("id, storage_path, uploader_id, event_id, events!memories_event_id_fkey(organiser_id)")
+    .eq("id", parsed.data.memoryId)
+    .eq("event_id", parsed.data.eventId)
+    .single()
+
+  if (fetchErr || !memory) return { error: "Memory not found" }
+
+  // Authorisation: uploader or event organiser
+  const organiserId = Array.isArray(memory.events)
+    ? (memory.events[0] as { organiser_id: string } | undefined)?.organiser_id
+    : (memory.events as { organiser_id: string } | null)?.organiser_id
+
+  const isUploader  = memory.uploader_id === user.id
+  const isOrganiser = organiserId === user.id
+
+  if (!isUploader && !isOrganiser) return { error: "You do not have permission to delete this memory" }
+
+  // Delete DB row first; if that succeeds, remove the file from storage
+  const { error: deleteErr } = await supabase
+    .from("memories")
+    .delete()
+    .eq("id", parsed.data.memoryId)
+
+  if (deleteErr) return { error: deleteErr.message }
+
+  // Best-effort storage removal — don't surface storage errors to the user
+  await supabase.storage.from("memories").remove([memory.storage_path])
+
+  revalidatePath(`/events/${parsed.data.eventId}`)
+  revalidatePath(`/events/${parsed.data.eventId}/memory-box`)
+}
