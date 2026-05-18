@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Share2, Check, Link2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { buildShareIntents } from "@/lib/share"
 
 // ── Brand SVG icons ───────────────────────────────────────────────────────────
 
@@ -52,8 +53,9 @@ function InstagramIcon({ className }: { className?: string }) {
 // ── Props ─────────────────────────────────────────────────────────────────────
 
 type Props = {
-  shareToken:  string
-  eventTitle?: string
+  shareToken:    string
+  eventTitle?:   string
+  memoryTeaser?: string
 }
 
 // ── Shared button shell ───────────────────────────────────────────────────────
@@ -103,7 +105,7 @@ async function copyToClipboard(text: string) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function ShareButton({ shareToken, eventTitle }: Props) {
+export function ShareButton({ shareToken, eventTitle, memoryTeaser }: Props) {
   const [copied,         setCopied]         = useState(false)
   const [canNativeShare, setCanNativeShare] = useState(false)
 
@@ -111,18 +113,14 @@ export function ShareButton({ shareToken, eventTitle }: Props) {
     setCanNativeShare(typeof navigator !== "undefined" && !!navigator.share)
   }, [])
 
-  function shareUrl() {
-    return `${window.location.origin}/e/${shareToken}`
-  }
-
-  function shareMessage() {
-    return eventTitle ? `${eventTitle} — join on Doo's` : "Join my Doo!"
+  function intents() {
+    return buildShareIntents({ shareToken, eventTitle, memoryTeaser })
   }
 
   // ── Copy link ─────────────────────────────────────────────────────────────
 
   async function handleCopy() {
-    await copyToClipboard(shareUrl())
+    await copyToClipboard(intents().shareUrl)
     setCopied(true)
     toast.success("Link copied!", { description: "Paste it anywhere to share your Doo." })
     setTimeout(() => setCopied(false), 2500)
@@ -131,36 +129,31 @@ export function ShareButton({ shareToken, eventTitle }: Props) {
   // ── Native share ──────────────────────────────────────────────────────────
 
   async function handleNativeShare() {
+    const { shareUrl, message } = intents()
     try {
-      await navigator.share({ title: shareMessage(), url: shareUrl() })
+      await navigator.share({ title: eventTitle ?? "Join my Doo!", text: message, url: shareUrl })
     } catch { /* cancelled */ }
   }
 
   // ── LinkedIn ──────────────────────────────────────────────────────────────
-  // Official Share-offsite URL — no app ID required
 
   function handleLinkedIn() {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl())}`
-    window.open(url, "_blank", "noopener,noreferrer,width=600,height=600")
+    window.open(intents().linkedin, "_blank", "noopener,noreferrer,width=600,height=600")
   }
 
   // ── Facebook ──────────────────────────────────────────────────────────────
 
   function handleFacebook() {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl())}`
-    window.open(url, "_blank", "noopener,noreferrer,width=600,height=600")
+    window.open(intents().facebook, "_blank", "noopener,noreferrer,width=600,height=600")
   }
 
   // ── Instagram ─────────────────────────────────────────────────────────────
-  // Instagram has no web share URL — try the app deep link, then copy as fallback.
 
   async function handleInstagram() {
-    const url = shareUrl()
-    // Try Instagram app deep link (mobile only)
-    window.location.href = `instagram://share?url=${encodeURIComponent(url)}`
-    // After delay, fall back to clipboard with instructions
+    const { instagram, shareUrl } = intents()
+    window.location.href = instagram
     await new Promise((r) => setTimeout(r, 1200))
-    await copyToClipboard(url)
+    await copyToClipboard(shareUrl)
     toast.success("Link copied for Instagram!", {
       description: "Add it to your bio link, story, or post caption.",
     })
@@ -169,21 +162,16 @@ export function ShareButton({ shareToken, eventTitle }: Props) {
   // ── Teams ─────────────────────────────────────────────────────────────────
 
   function handleTeams() {
-    const url =
-      `https://teams.microsoft.com/share` +
-      `?href=${encodeURIComponent(shareUrl())}` +
-      `&preview=true` +
-      (eventTitle ? `&title=${encodeURIComponent(eventTitle)}` : "")
-    window.open(url, "_blank", "noopener,noreferrer,width=700,height=560")
+    window.open(intents().teams, "_blank", "noopener,noreferrer,width=700,height=560")
   }
 
   // ── Slack ─────────────────────────────────────────────────────────────────
 
   async function handleSlack() {
-    const message = `${shareMessage()} ${shareUrl()}`
-    window.location.href = `slack://open?message=${encodeURIComponent(message)}`
+    const { slack, shareUrl } = intents()
+    window.location.href = slack
     await new Promise((r) => setTimeout(r, 1200))
-    await copyToClipboard(shareUrl())
+    await copyToClipboard(shareUrl)
     toast.success("Link copied for Slack!", { description: "Paste it into any channel or DM." })
   }
 
