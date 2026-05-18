@@ -153,7 +153,7 @@ function RouteMap({ stops }: { stops: Stop[] }) {
   return (
     <div
       ref={mapEl}
-      className="h-64 w-full overflow-hidden rounded-xl border"
+      className="h-52 w-full overflow-hidden rounded-xl border sm:h-64"
       role="application"
       aria-label="Event route map"
     />
@@ -205,7 +205,7 @@ function StopList({ stops, isOrganiser, isPending, onRemove, onMove }: StopListP
                   type="button"
                   onClick={() => onMove(i, -1)}
                   disabled={i === 0 || isPending}
-                  className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`Move ${stop.name} up`}
                 >
                   <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
@@ -214,7 +214,7 @@ function StopList({ stops, isOrganiser, isPending, onRemove, onMove }: StopListP
                   type="button"
                   onClick={() => onMove(i, 1)}
                   disabled={i === stops.length - 1 || isPending}
-                  className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`Move ${stop.name} down`}
                 >
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
@@ -355,7 +355,7 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
         {apiLoaded ? (
           <RouteMap stops={localStops} />
         ) : (
-          <div className="flex h-64 items-center justify-center gap-2 rounded-xl border bg-muted/30 text-sm text-muted-foreground">
+          <div className="flex h-52 items-center justify-center gap-2 rounded-xl border bg-muted/30 text-sm text-muted-foreground sm:h-64">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Loading map…
           </div>

@@ -184,7 +184,7 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
   return (
     <div className="space-y-3">
       <PlaceSearch onSelect={handleSelect} />
-      <div ref={mapEl} className="h-64 w-full overflow-hidden rounded-xl border" role="application" aria-label="Map" />
+      <div ref={mapEl} className="h-52 w-full overflow-hidden rounded-xl border sm:h-64" role="application" aria-label="Map" />
     </div>
   )
 }
@@ -251,7 +251,7 @@ export function StepMapStops({ data, onChange }: Props) {
         {apiLoaded ? (
           <MapView stops={stops} onAddStop={addStop} />
         ) : (
-          <div className="flex h-64 items-center justify-center gap-2 rounded-xl border bg-muted/30 text-sm text-muted-foreground">
+          <div className="flex h-52 items-center justify-center gap-2 rounded-xl border bg-muted/30 text-sm text-muted-foreground sm:h-64">
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             Loading map…
           </div>

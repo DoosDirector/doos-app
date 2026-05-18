@@ -134,7 +134,7 @@ function StatusGroup({ status, rsvps }: { status: Enums<"rsvp_status">; rsvps: R
       <div className="flex items-center gap-1">
         <Icon className={cn("h-3.5 w-3.5 shrink-0", iconClass)} aria-hidden="true" />
         <span className="text-sm font-semibold">{rsvps.length}</span>
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="truncate text-xs text-muted-foreground">{label}</span>
       </div>
     </div>
   )
@@ -214,7 +214,7 @@ export function RsvpStrip({ rsvps, eventId, currentUserId, isAlcoholFriendly }: 
       </div>
 
       {/* Status groups */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         {(["yes", "maybe", "no"] as const).map((s) => (
           <StatusGroup key={s} status={s} rsvps={byStatus[s]} />
         ))}

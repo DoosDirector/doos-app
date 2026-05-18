@@ -115,9 +115,9 @@ function RsvpSummary({ rsvps }: { rsvps: { status: string }[] }) {
       >
         Who's coming
       </h2>
-      <div className="flex gap-4 rounded-xl border bg-card p-4">
-        <StatPill value={counts.going} label="Going"    colour="text-green-600" />
-        <StatPill value={counts.maybe} label="Maybe"    colour="text-amber-600" />
+      <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-4">
+        <StatPill value={counts.going} label="Going"        colour="text-green-600" />
+        <StatPill value={counts.maybe} label="Maybe"        colour="text-amber-600" />
         <StatPill value={counts.no}    label="Can't make it" colour="text-red-500" />
       </div>
     </section>
@@ -126,7 +126,7 @@ function RsvpSummary({ rsvps }: { rsvps: { status: string }[] }) {
 
 function StatPill({ value, label, colour }: { value: number; label: string; colour: string }) {
   return (
-    <div className="flex flex-col items-center gap-0.5 min-w-[56px]">
+    <div className="flex flex-col items-center gap-0.5 text-center">
       <span className={`text-2xl font-bold tabular-nums ${colour}`}>{value}</span>
       <span className="text-xs text-muted-foreground">{label}</span>
     </div>
@@ -230,7 +230,7 @@ function JoinCta({ eventId, isLoggedIn }: { eventId: string; isLoggedIn: boolean
     : `/auth/sign-in?redirect=/events/${eventId}`
 
   return (
-    <div className="sticky bottom-4 z-10">
+    <div className="sticky bottom-0 z-10 pb-[env(safe-area-inset-bottom)] pt-2 bg-gradient-to-t from-background/90 to-transparent px-0">
       <Link
         href={href}
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-6 py-4 text-base font-semibold text-white shadow-lg transition-colors hover:bg-brand-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"

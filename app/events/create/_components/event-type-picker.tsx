@@ -63,7 +63,7 @@ export function EventTypePicker({ value, onChange }: Props) {
       ref={groupRef}
       role="radiogroup"
       aria-label="Event type"
-      className="grid grid-cols-3 gap-2 sm:grid-cols-6"
+      className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-6"
     >
       {EVENT_TYPE_OPTIONS.map(({ value: v, label, icon: Icon, activeClass }, i) => {
         const selected = value === v
