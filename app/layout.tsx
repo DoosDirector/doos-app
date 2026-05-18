@@ -20,7 +20,18 @@ export const metadata: Metadata = {
   },
   description:
     "Organise team nights out, lunches, and activities with polls, maps, RSVPs, and a shared Memory Box.",
+  // manifest.json is served automatically from app/manifest.ts
   manifest: "/manifest.json",
+  icons: {
+    // Apple touch icon (iOS add-to-home-screen)
+    apple: [{ url: "/logo.svg", type: "image/svg+xml" }],
+    icon:  [{ url: "/logo.svg", type: "image/svg+xml" }],
+  },
+  appleWebApp: {
+    capable:        true,
+    title:          "Doo's",
+    statusBarStyle: "black-translucent",
+  },
   openGraph: {
     siteName: "Doo's",
     type:     "website",
