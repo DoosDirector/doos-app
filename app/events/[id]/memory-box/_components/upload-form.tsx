@@ -95,15 +95,22 @@ function FileCard({
           </button>
         </div>
 
-        <input
-          type="text"
-          value={entry.caption}
-          onChange={(e) => onCaptionChange(e.target.value)}
-          placeholder="Add a caption… (optional)"
-          maxLength={140}
-          className="w-full rounded-md border bg-transparent px-2 py-1 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
-          aria-label={`Caption for ${entry.file.name}`}
-        />
+        <div className="space-y-0.5">
+          <input
+            type="text"
+            value={entry.caption}
+            onChange={(e) => onCaptionChange(e.target.value)}
+            placeholder="Add a caption… (optional)"
+            maxLength={140}
+            className="w-full rounded-md border bg-transparent px-2 py-1 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring"
+            aria-label={`Caption for ${entry.file.name}`}
+          />
+          {entry.caption.length > 0 && (
+            <p className={`text-right text-[10px] tabular-nums ${entry.caption.length >= 130 ? "text-destructive" : "text-muted-foreground/60"}`}>
+              {entry.caption.length}/140
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
