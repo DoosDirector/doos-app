@@ -247,7 +247,7 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
       <div
         role="button"
         tabIndex={0}
-        aria-label="Click or drag files to upload"
+        aria-label="Upload photos or videos — click, drag and drop, or press Enter to choose files"
         onClick={() => inputRef.current?.click()}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click() } }}
         onDragOver={onDragOver}

@@ -165,7 +165,7 @@ function MyRsvpConfirmation({
           <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="text-sm font-semibold">{cfg.sentence}</span>
         </div>
-        <Button asChild size="sm" variant="outline" className="shrink-0 h-7 text-xs px-2.5">
+        <Button asChild size="sm" variant="outline" className="shrink-0 h-8 text-xs px-2.5">
           <Link href={`/events/${eventId}/rsvp`}>Change RSVP</Link>
         </Button>
       </div>

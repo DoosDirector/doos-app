@@ -129,7 +129,11 @@ function PollCard({
       {/* Question */}
       <div className="flex items-start justify-between gap-2">
         <p className="font-semibold text-sm leading-snug">{question.question_text}</p>
-        <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+        <span
+          className="shrink-0 text-xs text-muted-foreground tabular-nums"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {totalVotes} {totalVotes === 1 ? "vote" : "votes"}
         </span>
       </div>
@@ -148,6 +152,7 @@ function PollCard({
                 onClick={() => handleVote(option.id)}
                 disabled={isPending}
                 aria-pressed={isVoted}
+                aria-label={`${option.option_text}${isVoted ? " — your vote" : ""}, ${pct}% (${count} ${count === 1 ? "vote" : "votes"})`}
                 className={cn(
                   "w-full rounded-lg border-2 px-3 py-2.5 text-left transition-all",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -163,7 +168,7 @@ function PollCard({
                     {isVoted && (
                       <CheckCircle2
                         className="h-3.5 w-3.5 shrink-0 text-brand-primary"
-                        aria-label="Your vote"
+                        aria-hidden="true"
                       />
                     )}
                     <span className={cn(

@@ -26,9 +26,9 @@ type Props = {
 // ── Drinking icon ─────────────────────────────────────────────────────────────
 
 function DrinkingIcon({ pref }: { pref: Enums<"drinking_preference"> }) {
-  if (pref === "yes")   return <Wine       className="h-3.5 w-3.5 text-brand-accent"          aria-label="Drinking"       />
-  if (pref === "no")    return <CupSoda    className="h-3.5 w-3.5 text-muted-foreground"       aria-label="Not drinking"   />
-  return                       <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60"   aria-label="Drinking: maybe" />
+  if (pref === "yes")   return <Wine       role="img" className="h-3.5 w-3.5 text-brand-accent"        aria-label="Drinking" />
+  if (pref === "no")    return <CupSoda    role="img" className="h-3.5 w-3.5 text-muted-foreground"     aria-label="Not drinking" />
+  return                       <HelpCircle role="img" className="h-3.5 w-3.5 text-muted-foreground/60" aria-label="Drinking preference: maybe" />
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────

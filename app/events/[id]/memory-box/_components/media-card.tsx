@@ -4,6 +4,7 @@ import { useState, useRef, useTransition } from "react"
 import Image from "next/image"
 import { PlayCircle, PauseCircle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 import { deleteMemory } from "@/lib/actions/events"
 
 type Props = {
@@ -78,12 +79,15 @@ export function MediaCard({ publicUrl, mediaType, caption, uploaderName, sizes, 
             className="h-full w-full object-cover"
           />
 
-          {/* Play/pause overlay */}
+          {/* Play/pause overlay — always in DOM for keyboard access; hidden via class not inline style */}
           <button
             type="button"
             onClick={togglePlay}
-            className="absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ opacity: isPlaying ? 0 : 1 }}
+            className={cn(
+              "absolute inset-0 flex items-center justify-center bg-black/30 transition-opacity duration-200",
+              "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isPlaying ? "opacity-0" : "opacity-100"
+            )}
             aria-label={isPlaying ? "Pause video" : "Play video"}
           >
             {isPlaying ? (

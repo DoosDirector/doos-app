@@ -117,7 +117,6 @@ export function EventHeader({ event, organiser, currentUserId }: Props) {
               ? "bg-brand-accent/10 text-brand-accent"
               : "bg-muted text-muted-foreground"
           )}
-          aria-label={event.alcohol_friendly ? "Alcohol-friendly event" : "Alcohol-free event"}
         >
           {event.alcohol_friendly
             ? <Martini  className="h-3.5 w-3.5" aria-hidden="true" />

@@ -182,7 +182,11 @@ function PollQuestionCard({ question: q, index: qi, total, showErrors, onUpdate,
           </span>
         </Label>
 
-        <ol className="space-y-2" aria-label={`Options for question ${qi + 1}`}>
+        <ol
+          className="space-y-2"
+          aria-label={`Options for question ${qi + 1}`}
+          aria-describedby={optionsError ? `q-${qi}-options-error` : undefined}
+        >
           {q.options.map((opt, oi) => (
             <li key={oi} className="flex items-center gap-2">
               <span
