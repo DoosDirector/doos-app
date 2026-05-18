@@ -8,7 +8,7 @@ const PROTECTED_PREFIXES = ["/dashboard", "/events"]
 // Routes that signed-in users should not be able to reach
 const AUTH_ROUTES = ["/auth/sign-in", "/auth/sign-up"]
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Start with a response we can mutate (to forward refreshed session cookies)
   let supabaseResponse = NextResponse.next({ request })
 
