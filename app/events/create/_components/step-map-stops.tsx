@@ -69,12 +69,27 @@ function StopItem({
 
 const POLY_OPTS = { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.85 }
 
+function esc(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+function infoContent(num: number, name: string, address: string) {
+  return `<div style="max-width:200px;font-family:inherit">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:${address ? 4 : 0}px">
+      <span style="flex-shrink:0;display:flex;width:18px;height:18px;border-radius:50%;background:#0d9488;color:#fff;font-size:10px;font-weight:700;align-items:center;justify-content:center">${num}</span>
+      <strong style="font-size:13px;line-height:1.3">${esc(name)}</strong>
+    </div>
+    ${address ? `<p style="margin:0;font-size:11px;color:#6b7280;line-height:1.4">${esc(address)}</p>` : ""}
+  </div>`
+}
+
 function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResult) => void }) {
   const mapEl           = useRef<HTMLDivElement>(null)
   const mapRef          = useRef<any>(null)
   const markersRef      = useRef<any[]>([])
   const dirRenderer     = useRef<any>(null)
   const fallbackPolyRef = useRef<any>(null)
+  const infoWindowRef   = useRef<any>(null)
 
   // Init map once
   useEffect(() => {
@@ -92,6 +107,9 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
       polylineOptions: POLY_OPTS,
     })
     dirRenderer.current.setMap(mapRef.current)
+
+    infoWindowRef.current = new G.InfoWindow()
+    mapRef.current.addListener("click", () => infoWindowRef.current?.close())
   }, [])
 
   // Sync markers + route when stops change
@@ -100,6 +118,7 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
     const G = (window as any).google.maps
 
     // ── Clear previous state ─────────────────────────────────────────────
+    infoWindowRef.current?.close()
     markersRef.current.forEach((m) => m.setMap(null))
     markersRef.current = []
     dirRenderer.current?.setMap(null)
@@ -109,15 +128,21 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
 
     if (stops.length === 0) return
 
-    // ── Numbered teal markers ────────────────────────────────────────────
-    markersRef.current = stops.map((s, i) =>
-      new G.Marker({
+    // ── Numbered teal markers with click → InfoWindow ────────────────────
+    markersRef.current = stops.map((s, i) => {
+      const marker = new G.Marker({
         position: { lat: s.lat, lng: s.lng },
         map: mapRef.current,
         label: { text: String(i + 1), color: "white", fontWeight: "bold", fontSize: "11px" },
         icon: { path: G.SymbolPath.CIRCLE, fillColor: "#0d9488", fillOpacity: 1, strokeColor: "white", strokeWeight: 2, scale: 13 },
+        title: s.name,
       })
-    )
+      marker.addListener("click", () => {
+        infoWindowRef.current.setContent(infoContent(i + 1, s.name, s.address))
+        infoWindowRef.current.open({ anchor: marker, map: mapRef.current })
+      })
+      return marker
+    })
 
     // ── Route polyline ───────────────────────────────────────────────────
     if (stops.length >= 2) {
