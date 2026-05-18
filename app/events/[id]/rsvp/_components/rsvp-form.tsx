@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, X, HelpCircle, Wine, CupSoda, Loader2 } from "lucide-react"
+import { Check, X, HelpCircle, Wine, CupSoda, Loader2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { upsertRsvp } from "@/lib/actions/events"
@@ -65,13 +65,14 @@ const DRINKING_OPTIONS: {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function RsvpForm({ eventId, alcoholFriendly, initialStatus, initialDrinking }: Props) {
-  const [status,   setStatus]   = useState<RsvpStatus | undefined>(initialStatus)
-  const [drinking, setDrinking] = useState<DrinkingPreference>(initialDrinking ?? "maybe")
-  const [isPending, startTransition] = useTransition()
+  const [status,      setStatus]      = useState<RsvpStatus | undefined>(initialStatus)
+  const [drinking,    setDrinking]    = useState<DrinkingPreference>(initialDrinking ?? "maybe")
+  const [statusError, setStatusError] = useState(false)
+  const [isPending,   startTransition] = useTransition()
 
   function handleSubmit() {
     if (!status) {
-      toast.warning("Please select your attendance first.")
+      setStatusError(true)
       return
     }
 
@@ -92,8 +93,17 @@ export function RsvpForm({ eventId, alcoholFriendly, initialStatus, initialDrink
     <div className="space-y-6">
       {/* ── Attendance ── */}
       <fieldset>
-        <legend className="mb-3 text-sm font-semibold">Are you going?</legend>
-        <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Attendance">
+        <legend className="mb-3 text-sm font-semibold">
+          Are you going?{" "}
+          <span className="text-destructive" aria-hidden="true">*</span>
+        </legend>
+        <div
+          className="grid grid-cols-3 gap-3"
+          role="radiogroup"
+          aria-label="Attendance"
+          aria-required="true"
+          aria-describedby={statusError ? "status-error" : undefined}
+        >
           {STATUS_OPTIONS.map(({ value, label, icon: Icon, selectedClass, hoverClass }) => {
             const isSelected = status === value
             return (
@@ -102,7 +112,7 @@ export function RsvpForm({ eventId, alcoholFriendly, initialStatus, initialDrink
                 type="button"
                 role="radio"
                 aria-checked={isSelected}
-                onClick={() => setStatus(value)}
+                onClick={() => { setStatus(value); setStatusError(false) }}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-xl border-2 px-2 py-4 text-sm font-medium transition-all",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
@@ -115,6 +125,12 @@ export function RsvpForm({ eventId, alcoholFriendly, initialStatus, initialDrink
             )
           })}
         </div>
+        {statusError && (
+          <p id="status-error" role="alert" className="mt-2 flex items-center gap-1 text-xs text-destructive">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            Please select your attendance before continuing.
+          </p>
+        )}
       </fieldset>
 
       {/* ── Drinking preference (only for alcohol-friendly events) ── */}

@@ -93,6 +93,7 @@ export function CreateEventForm() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState<CreateEventData>(INITIAL_DATA)
   const [step1Attempted, setStep1Attempted] = useState(false)
+  const [step2Attempted, setStep2Attempted] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   function update(partial: Partial<CreateEventData>) {
@@ -101,11 +102,20 @@ export function CreateEventForm() {
 
   const isStep1Valid = data.title.trim().length > 0
 
+  const isStep2Valid = data.pollQuestions.every(
+    (q) => q.text.trim() && q.options.filter((o) => o.trim()).length >= 2
+  )
+
   function handleNext() {
     if (step === 0 && !isStep1Valid) {
       setStep1Attempted(true)
       return
     }
+    if (step === 1 && !isStep2Valid) {
+      setStep2Attempted(true)
+      return
+    }
+    setStep2Attempted(false)
     setStep((s) => Math.min(s + 1, STEPS.length - 1))
   }
 
@@ -145,7 +155,7 @@ export function CreateEventForm() {
             showErrors={step1Attempted}
           />
         )}
-        {step === 1 && <StepPollBuilder data={data} onChange={update} />}
+        {step === 1 && <StepPollBuilder data={data} onChange={update} showErrors={step2Attempted} />}
         {step === 2 && <StepMapStops data={data} onChange={update} />}
       </div>
 

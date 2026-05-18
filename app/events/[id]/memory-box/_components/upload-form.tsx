@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { UploadCloud, X, ImageIcon, Film, Loader2 } from "lucide-react"
+import { UploadCloud, X, ImageIcon, Film, Loader2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -120,9 +120,10 @@ function FileCard({
 
 export function UploadForm({ eventId, uploadMemory }: Props) {
   const router   = useRouter()
-  const [files, setFiles]         = useState<FileEntry[]>([])
+  const [files,      setFiles]      = useState<FileEntry[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [isPending, startTransition] = useTransition()
+  const [noFilesErr, setNoFilesErr] = useState(false)
+  const [isPending,  startTransition] = useTransition()
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Revoke blob URLs when entries are removed or on unmount
@@ -164,6 +165,7 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
         })),
       ]
     })
+    if (valid.length > 0) setNoFilesErr(false)
   }, [])
 
   function removeFile(id: string) {
@@ -198,10 +200,14 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
   // ── Submit ─────────────────────────────────────────────────────────────────
 
   function handleUpload() {
-    if (files.length === 0 || !uploadMemory) {
-      if (!uploadMemory) {
-        toast.info("Upload coming soon", { description: "The upload action will be wired in the next update." })
-      }
+    if (files.length === 0) {
+      setNoFilesErr(true)
+      if (!uploadMemory) toast.info("Upload coming soon", { description: "The upload action will be wired in the next update." })
+      return
+    }
+    setNoFilesErr(false)
+    if (!uploadMemory) {
+      toast.info("Upload coming soon", { description: "The upload action will be wired in the next update." })
       return
     }
 
@@ -297,11 +303,18 @@ export function UploadForm({ eventId, uploadMemory }: Props) {
         </div>
       )}
 
+      {noFilesErr && files.length === 0 && (
+        <p role="alert" className="flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Please add at least one photo or video before uploading.
+        </p>
+      )}
+
       {/* Upload button */}
       <button
         type="button"
         onClick={handleUpload}
-        disabled={files.length === 0 || isPending}
+        disabled={isPending}
         className={cn(
           "flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary px-4 py-3",
           "text-sm font-semibold text-white transition-colors",

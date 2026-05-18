@@ -1,11 +1,20 @@
 "use client"
 
-import { PlusCircle, Trash2, CheckCircle2, ListChecks } from "lucide-react"
+import { PlusCircle, Trash2, CheckCircle2, ListChecks, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import type { CreateEventData, PollQuestion } from "./create-event-form"
+
+function FieldError({ id, message }: { id: string; message: string }) {
+  return (
+    <p id={id} role="alert" className="flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {message}
+    </p>
+  )
+}
 
 const OPTIONS_MIN = 2
 const OPTIONS_MAX = 8
@@ -84,11 +93,17 @@ type CardProps = {
   question: PollQuestion
   index: number
   total: number
+  showErrors: boolean
   onUpdate: (fn: (q: PollQuestion) => PollQuestion) => void
   onRemove: () => void
 }
 
-function PollQuestionCard({ question: q, index: qi, total, onUpdate, onRemove }: CardProps) {
+function PollQuestionCard({ question: q, index: qi, total, showErrors, onUpdate, onRemove }: CardProps) {
+  const nonEmptyOptions = q.options.filter((o) => o.trim())
+  const textError    = showErrors && !q.text.trim() ? "Question text is required" : null
+  const optionsError = showErrors && nonEmptyOptions.length < OPTIONS_MIN
+    ? `At least ${OPTIONS_MIN} non-empty options required`
+    : null
   function setType(type: QuestionType) {
     onUpdate((q) => ({ ...q, type }))
   }
@@ -135,14 +150,20 @@ function PollQuestionCard({ question: q, index: qi, total, onUpdate, onRemove }:
 
       {/* Question text */}
       <div className="space-y-1.5">
-        <Label htmlFor={`q-${qi}-text`}>Question</Label>
+        <Label htmlFor={`q-${qi}-text`}>
+          Question <span className="text-destructive" aria-hidden="true">*</span>
+        </Label>
         <Input
           id={`q-${qi}-text`}
           placeholder="Where should we go?"
           value={q.text}
           onChange={(e) => setText(e.target.value)}
           maxLength={200}
+          aria-invalid={textError ? "true" : "false"}
+          aria-describedby={textError ? `q-${qi}-text-error` : undefined}
+          className={cn(textError && "border-destructive focus-visible:ring-destructive")}
         />
+        {textError && <FieldError id={`q-${qi}-text-error`} message={textError} />}
       </div>
 
       {/* Answer type */}
@@ -192,6 +213,8 @@ function PollQuestionCard({ question: q, index: qi, total, onUpdate, onRemove }:
           ))}
         </ol>
 
+        {optionsError && <FieldError id={`q-${qi}-options-error`} message={optionsError} />}
+
         {q.options.length < OPTIONS_MAX && (
           <Button
             type="button"
@@ -214,9 +237,10 @@ function PollQuestionCard({ question: q, index: qi, total, onUpdate, onRemove }:
 type Props = {
   data: CreateEventData
   onChange: (partial: Partial<CreateEventData>) => void
+  showErrors?: boolean
 }
 
-export function StepPollBuilder({ data, onChange }: Props) {
+export function StepPollBuilder({ data, onChange, showErrors = false }: Props) {
   const { pollQuestions: questions } = data
 
   function setQuestions(qs: PollQuestion[]) {
@@ -255,6 +279,7 @@ export function StepPollBuilder({ data, onChange }: Props) {
               question={q}
               index={qi}
               total={questions.length}
+              showErrors={showErrors}
               onUpdate={(fn) => updateQuestion(qi, fn)}
               onRemove={() => removeQuestion(qi)}
             />
