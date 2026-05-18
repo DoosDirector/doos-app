@@ -11,7 +11,7 @@ export function ShareButton({ shareToken }: Props) {
   const [copied, setCopied] = useState(false)
 
   async function handleShare() {
-    const url = `${window.location.origin}/events/join/${shareToken}`
+    const url = `${window.location.origin}/e/${shareToken}`
 
     if (navigator.share) {
       try {
