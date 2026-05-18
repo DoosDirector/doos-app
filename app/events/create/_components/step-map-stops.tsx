@@ -26,29 +26,40 @@ function StopItem({
 }) {
   return (
     <li className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm">
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white">
+      <span
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white"
+        aria-hidden="true"
+      >
         {index + 1}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">{stop.name}</p>
-        <p className="truncate text-xs text-muted-foreground">{stop.address}</p>
+        <p className="truncate text-sm font-medium leading-snug">{stop.name}</p>
+        {stop.address && (
+          <p className="truncate text-xs text-muted-foreground">{stop.address}</p>
+        )}
       </div>
       <div className="flex shrink-0 flex-col">
-        <button type="button" onClick={onMoveUp} disabled={index === 0}
-          className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Move stop up">
-          <ChevronUp className="h-3.5 w-3.5" />
+        <button
+          type="button" onClick={onMoveUp} disabled={index === 0}
+          className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`Move ${stop.name} up`}
+        >
+          <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
-        <button type="button" onClick={onMoveDown} disabled={index === total - 1}
-          className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Move stop down">
-          <ChevronDown className="h-3.5 w-3.5" />
+        <button
+          type="button" onClick={onMoveDown} disabled={index === total - 1}
+          className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`Move ${stop.name} down`}
+        >
+          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
         </button>
       </div>
-      <button type="button" onClick={onRemove}
-        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={`Remove ${stop.name}`}>
-        <X className="h-3.5 w-3.5" />
+      <button
+        type="button" onClick={onRemove}
+        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`Remove ${stop.name}`}
+      >
+        <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
     </li>
   )

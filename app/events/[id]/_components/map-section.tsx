@@ -2,10 +2,11 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useRef, useState } from "react"
-import { MapPin, Loader2, Trash2 } from "lucide-react"
+import { useEffect, useRef, useState, useTransition } from "react"
+import { MapPin, Loader2, Trash2, ChevronUp, ChevronDown } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { deleteEventStop, reorderEventStops } from "@/lib/actions/events"
 import type { Tables } from "@/types"
 
 type Stop = Pick<Tables<"event_stops">, "id" | "name" | "address" | "lat" | "lng" | "order">
@@ -28,20 +29,17 @@ function RouteMap({ stops }: { stops: Stop[] }) {
   const markersRef  = useRef<any[]>([])
   const dirRenderer = useRef<any>(null)
 
-  // Init map + directions renderer once
   useEffect(() => {
     if (!mapEl.current) return
     const G = (window as any).google.maps
-
     mapRef.current = new G.Map(mapEl.current, {
-      center:              DEFAULT_CENTER,
-      zoom:                13,
-      mapTypeControl:      false,
-      fullscreenControl:   false,
-      streetViewControl:   false,
-      zoomControl:         true,
+      center:            DEFAULT_CENTER,
+      zoom:              13,
+      mapTypeControl:    false,
+      fullscreenControl: false,
+      streetViewControl: false,
+      zoomControl:       true,
     })
-
     dirRenderer.current = new G.DirectionsRenderer({
       suppressMarkers: true,
       polylineOptions: { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.85 },
@@ -49,54 +47,43 @@ function RouteMap({ stops }: { stops: Stop[] }) {
     dirRenderer.current.setMap(mapRef.current)
   }, [])
 
-  // Sync markers + route when stops change (also runs on first paint)
   useEffect(() => {
     if (!mapRef.current) return
     const G = (window as any).google.maps
 
-    // Clear old markers
     markersRef.current.forEach((m) => m.setMap(null))
     markersRef.current = []
-
     if (stops.length === 0) return
 
-    // Place numbered teal markers
     markersRef.current = stops.map((s, i) =>
       new G.Marker({
         position: { lat: s.lat, lng: s.lng },
-        map: mapRef.current,
-        label: { text: String(i + 1), color: "white", fontWeight: "bold", fontSize: "11px" },
+        map:      mapRef.current,
+        label:    { text: String(i + 1), color: "white", fontWeight: "bold", fontSize: "11px" },
         icon: {
-          path:         G.SymbolPath.CIRCLE,
-          fillColor:    "#0d9488",
-          fillOpacity:  1,
-          strokeColor:  "white",
-          strokeWeight: 2,
-          scale:        13,
+          path: G.SymbolPath.CIRCLE, fillColor: "#0d9488", fillOpacity: 1,
+          strokeColor: "white", strokeWeight: 2, scale: 13,
         },
         title: s.name,
       })
     )
 
-    // Fit map bounds to all stops
     if (stops.length === 1) {
       mapRef.current.setCenter({ lat: stops[0].lat, lng: stops[0].lng })
       mapRef.current.setZoom(15)
     } else {
       const bounds = new G.LatLngBounds()
       stops.forEach((s) => bounds.extend({ lat: s.lat, lng: s.lng }))
-      mapRef.current.fitBounds(bounds, /* padding px */ 40)
+      mapRef.current.fitBounds(bounds, 40)
     }
 
-    // Draw walking route polyline connecting stops in order
     if (stops.length >= 2) {
       new G.DirectionsService().route(
         {
           origin:      { lat: stops[0].lat, lng: stops[0].lng },
           destination: { lat: stops.at(-1)!.lat, lng: stops.at(-1)!.lng },
           waypoints:   stops.slice(1, -1).map((s) => ({
-            location: { lat: s.lat, lng: s.lng },
-            stopover: true,
+            location: { lat: s.lat, lng: s.lng }, stopover: true,
           })),
           travelMode: G.TravelMode.WALKING,
         },
@@ -121,43 +108,80 @@ function RouteMap({ stops }: { stops: Stop[] }) {
 
 // ── Stop list ─────────────────────────────────────────────────────────────────
 
-function StopList({ stops, isOrganiser, eventId }: { stops: Stop[]; isOrganiser: boolean; eventId: string }) {
-  function handleRemove(stop: Stop) {
-    // TODO (Task 51+): call deleteStop(stop.id, eventId) server action
-    toast.info("Stop management coming soon", {
-      description: "Organisers will be able to edit stops in an upcoming update.",
-    })
-  }
+type StopListProps = {
+  stops:       Stop[]
+  isOrganiser: boolean
+  isPending:   boolean
+  onRemove:    (id: string) => void
+  onMove:      (i: number, dir: -1 | 1) => void
+}
 
+function StopList({ stops, isOrganiser, isPending, onRemove, onMove }: StopListProps) {
   return (
     <ol className="space-y-2" aria-label="Route stops">
       {stops.map((stop, i) => (
-        <li key={stop.id} className="flex items-start gap-3">
+        <li
+          key={stop.id}
+          className={cn(
+            "flex items-center gap-2 rounded-lg border bg-card px-3 py-2 shadow-sm",
+            isPending && "opacity-60"
+          )}
+        >
+          {/* Order badge */}
           <span
-            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary text-[10px] font-bold text-white"
             aria-hidden="true"
           >
             {i + 1}
           </span>
+
+          {/* Name + address */}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium leading-snug">{stop.name}</p>
+            <p className="truncate text-sm font-medium leading-snug">{stop.name}</p>
             {stop.address && (
-              <p className="text-xs text-muted-foreground">{stop.address}</p>
+              <p className="truncate text-xs text-muted-foreground">{stop.address}</p>
             )}
           </div>
+
+          {/* Organiser controls */}
           {isOrganiser && (
-            <button
-              type="button"
-              onClick={() => handleRemove(stop)}
-              className={cn(
-                "mt-0.5 shrink-0 rounded p-1 text-muted-foreground",
-                "hover:bg-destructive/10 hover:text-destructive",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              )}
-              aria-label={`Remove stop: ${stop.name}`}
-            >
-              <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
+            <>
+              <div className="flex shrink-0 flex-col">
+                <button
+                  type="button"
+                  onClick={() => onMove(i, -1)}
+                  disabled={i === 0 || isPending}
+                  className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Move ${stop.name} up`}
+                >
+                  <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onMove(i, 1)}
+                  disabled={i === stops.length - 1 || isPending}
+                  className="rounded p-0.5 text-muted-foreground hover:bg-muted disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-label={`Move ${stop.name} down`}
+                >
+                  <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onRemove(stop.id)}
+                disabled={isPending}
+                className={cn(
+                  "shrink-0 rounded p-1 text-muted-foreground",
+                  "hover:bg-destructive/10 hover:text-destructive",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "disabled:cursor-not-allowed disabled:opacity-50"
+                )}
+                aria-label={`Remove stop: ${stop.name}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            </>
           )}
         </li>
       ))}
@@ -168,7 +192,11 @@ function StopList({ stops, isOrganiser, eventId }: { stops: Stop[]; isOrganiser:
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function MapSection({ stops, eventId, isOrganiser }: Props) {
-  const sorted = [...stops].sort((a, b) => a.order - b.order)
+  // Local ordered copy — mutations here instantly sync the map + list
+  const [localStops, setLocalStops] = useState(
+    () => [...stops].sort((a, b) => a.order - b.order)
+  )
+  const [isPending, startTransition] = useTransition()
 
   const [apiLoaded, setApiLoaded] = useState(
     () => typeof window !== "undefined" && !!(window as any).google?.maps
@@ -181,7 +209,40 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
     return () => window.removeEventListener("google-maps-ready", handler)
   }, [])
 
-  if (sorted.length === 0) return null
+  if (localStops.length === 0) return null
+
+  // ── Organiser actions ──────────────────────────────────────────────────────
+
+  function handleRemove(stopId: string) {
+    const previous = localStops
+    const next = localStops.filter((s) => s.id !== stopId)
+    setLocalStops(next)
+    startTransition(async () => {
+      const result = await deleteEventStop(stopId, eventId)
+      if (result?.error) {
+        setLocalStops(previous)
+        toast.error("Couldn't remove stop", { description: result.error })
+      }
+    })
+  }
+
+  function handleMove(i: number, dir: -1 | 1) {
+    const j = i + dir
+    if (j < 0 || j >= localStops.length) return
+    const previous = localStops
+    const next = [...localStops];
+    [next[i], next[j]] = [next[j], next[i]]
+    setLocalStops(next)
+    startTransition(async () => {
+      const result = await reorderEventStops(eventId, next.map((s) => s.id))
+      if (result?.error) {
+        setLocalStops(previous)
+        toast.error("Couldn't reorder stops", { description: result.error })
+      }
+    })
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   if (!KEY_SET) {
     return (
@@ -194,7 +255,10 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
             <MapPin className="h-4 w-4" aria-hidden="true" />
             Map unavailable — Google Maps API key not configured
           </div>
-          <StopList stops={sorted} isOrganiser={isOrganiser} eventId={eventId} />
+          <StopList
+            stops={localStops} isOrganiser={isOrganiser}
+            isPending={isPending} onRemove={handleRemove} onMove={handleMove}
+          />
         </div>
       </section>
     )
@@ -202,22 +266,25 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
 
   return (
     <section aria-labelledby="route-heading" className="space-y-3">
-        <h2 id="route-heading" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          The route
-        </h2>
+      <h2 id="route-heading" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        The route
+      </h2>
 
-        <div className="rounded-xl border bg-card p-4 space-y-4">
-          {apiLoaded ? (
-            <RouteMap stops={sorted} />
-          ) : (
-            <div className="flex h-64 items-center justify-center gap-2 rounded-xl border bg-muted/30 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              Loading map…
-            </div>
-          )}
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        {apiLoaded ? (
+          <RouteMap stops={localStops} />
+        ) : (
+          <div className="flex h-64 items-center justify-center gap-2 rounded-xl border bg-muted/30 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            Loading map…
+          </div>
+        )}
 
-          <StopList stops={sorted} isOrganiser={isOrganiser} eventId={eventId} />
-        </div>
+        <StopList
+          stops={localStops} isOrganiser={isOrganiser}
+          isPending={isPending} onRemove={handleRemove} onMove={handleMove}
+        />
+      </div>
     </section>
   )
 }

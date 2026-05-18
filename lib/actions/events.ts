@@ -1,6 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { requireUser } from "@/lib/auth/guard"
 import { createClient } from "@/lib/supabase/server"
@@ -204,4 +205,48 @@ export async function upsertRsvp(
   if (error) return { error: error.message }
 
   redirect(`/events/${parsed.data.eventId}`)
+}
+
+// ── deleteEventStop ───────────────────────────────────────────────────────────
+
+export async function deleteEventStop(
+  stopId:  string,
+  eventId: string,
+): Promise<{ error: string } | void> {
+  await requireUser()
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from("event_stops")
+    .delete()
+    .eq("id", stopId)
+    .eq("event_id", eventId) // RLS guard via policy; belt-and-braces filter
+
+  if (error) return { error: error.message }
+  revalidatePath(`/events/${eventId}`)
+}
+
+// ── reorderEventStops ─────────────────────────────────────────────────────────
+// Receives the full ordered array of stop IDs and writes each stop's new index.
+
+export async function reorderEventStops(
+  eventId:    string,
+  orderedIds: string[],
+): Promise<{ error: string } | void> {
+  await requireUser()
+  const supabase = await createClient()
+
+  const updates = orderedIds.map((id, index) =>
+    supabase
+      .from("event_stops")
+      .update({ order: index })
+      .eq("id", id)
+      .eq("event_id", eventId)
+  )
+
+  const results = await Promise.all(updates)
+  const failed  = results.find((r) => r.error)
+  if (failed?.error) return { error: failed.error.message }
+
+  revalidatePath(`/events/${eventId}`)
 }
