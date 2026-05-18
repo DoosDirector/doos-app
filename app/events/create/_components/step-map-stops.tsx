@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useRef, useState } from "react"
-import Script from "next/script"
 import { MapPin, X, ChevronUp, ChevronDown, Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -11,8 +10,8 @@ import type { CreateEventData } from "./create-event-form"
 
 type Stop = CreateEventData["stops"][number]
 
-const API_KEY  = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""
-const KEY_SET  = API_KEY.length > 0 && !API_KEY.startsWith("your_")
+const KEY_SET = !!(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.length) &&
+  !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!.startsWith("your_")
 // London city centre default
 const DEFAULT_CENTER = { lat: 51.5074, lng: -0.1278 }
 
@@ -154,6 +153,13 @@ export function StepMapStops({ data, onChange }: Props) {
     () => typeof window !== "undefined" && !!(window as any).google?.maps
   )
 
+  useEffect(() => {
+    if ((window as any).google?.maps) return
+    const handler = () => setApiLoaded(true)
+    window.addEventListener("google-maps-ready", handler)
+    return () => window.removeEventListener("google-maps-ready", handler)
+  }, [])
+
   function setStops(next: Stop[]) { onChange({ stops: next }) }
   function addStop(stop: Stop) {
     if (stops.some((s) => s.placeId === stop.placeId)) return
@@ -187,16 +193,7 @@ export function StepMapStops({ data, onChange }: Props) {
   }
 
   return (
-    <>
-      {!apiLoaded && (
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`}
-          strategy="afterInteractive"
-          onLoad={() => setApiLoaded(true)}
-        />
-      )}
-
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h2 className="text-base font-semibold">Map stops</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -230,7 +227,6 @@ export function StepMapStops({ data, onChange }: Props) {
             No stops yet — search above to add your first venue.
           </p>
         )}
-      </div>
-    </>
+    </div>
   )
 }

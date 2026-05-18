@@ -3,7 +3,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useRef, useState } from "react"
-import Script from "next/script"
 import { MapPin, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -17,8 +16,8 @@ type Props = {
   isOrganiser: boolean
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ""
-const KEY_SET = API_KEY.length > 0 && !API_KEY.startsWith("your_")
+const KEY_SET = !!(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY?.length) &&
+  !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!.startsWith("your_")
 const DEFAULT_CENTER = { lat: 51.5074, lng: -0.1278 } // London
 
 // ── Read-only map view ────────────────────────────────────────────────────────
@@ -175,6 +174,13 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
     () => typeof window !== "undefined" && !!(window as any).google?.maps
   )
 
+  useEffect(() => {
+    if ((window as any).google?.maps) return
+    const handler = () => setApiLoaded(true)
+    window.addEventListener("google-maps-ready", handler)
+    return () => window.removeEventListener("google-maps-ready", handler)
+  }, [])
+
   if (sorted.length === 0) return null
 
   if (!KEY_SET) {
@@ -195,16 +201,7 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
   }
 
   return (
-    <>
-      {!apiLoaded && (
-        <Script
-          src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`}
-          strategy="afterInteractive"
-          onLoad={() => setApiLoaded(true)}
-        />
-      )}
-
-      <section aria-labelledby="route-heading" className="space-y-3">
+    <section aria-labelledby="route-heading" className="space-y-3">
         <h2 id="route-heading" className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           The route
         </h2>
@@ -221,7 +218,6 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
 
           <StopList stops={sorted} isOrganiser={isOrganiser} eventId={eventId} />
         </div>
-      </section>
-    </>
+    </section>
   )
 }

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Providers } from "@/components/providers"
+import { GoogleMapsScript } from "@/components/google-maps-script"
 import "./globals.css"
 
 const inter = Inter({
@@ -35,6 +36,7 @@ export default function RootLayout({
     <html lang="en-GB" className={`${inter.variable} h-full`}>
       <body className="min-h-full flex flex-col antialiased bg-background text-foreground">
         <Providers>{children}</Providers>
+        <GoogleMapsScript />
       </body>
     </html>
   )
