@@ -117,22 +117,27 @@ export function ShareButton({ shareToken, eventTitle, memoryTeaser }: Props) {
     return buildShareIntents({ shareToken, eventTitle, memoryTeaser })
   }
 
-  // ── Copy link ─────────────────────────────────────────────────────────────
+  // ── Primary share: native sheet → clipboard fallback ─────────────────────
 
-  async function handleCopy() {
-    await copyToClipboard(intents().shareUrl)
+  async function handleShare() {
+    const { shareUrl, message } = intents()
+
+    if (canNativeShare) {
+      try {
+        await navigator.share({ title: eventTitle ?? "Join my Doo!", text: message, url: shareUrl })
+        return  // native share handled; nothing more to do
+      } catch (err) {
+        // AbortError = user cancelled — no fallback needed
+        if (err instanceof Error && err.name === "AbortError") return
+        // Any other error (permission denied, etc.) → fall through to clipboard
+      }
+    }
+
+    // Clipboard fallback
+    await copyToClipboard(shareUrl)
     setCopied(true)
     toast.success("Link copied!", { description: "Paste it anywhere to share your Doo." })
     setTimeout(() => setCopied(false), 2500)
-  }
-
-  // ── Native share ──────────────────────────────────────────────────────────
-
-  async function handleNativeShare() {
-    const { shareUrl, message } = intents()
-    try {
-      await navigator.share({ title: eventTitle ?? "Join my Doo!", text: message, url: shareUrl })
-    } catch { /* cancelled */ }
   }
 
   // ── LinkedIn ──────────────────────────────────────────────────────────────
@@ -179,21 +184,16 @@ export function ShareButton({ shareToken, eventTitle, memoryTeaser }: Props) {
 
   return (
     <div className="space-y-2">
-      {/* Primary row: Copy + native share */}
+      {/* Primary: native share sheet on mobile, clipboard copy on desktop */}
       <div className="flex flex-wrap gap-2">
-        <ShareBtn onClick={handleCopy} label="Copy share link" active={copied}>
+        <ShareBtn onClick={handleShare} label="Share this Doo" active={copied}>
           {copied
-            ? <Check className="h-4 w-4" aria-hidden="true" />
-            : <Link2 className="h-4 w-4" aria-hidden="true" />}
-          {copied ? "Copied!" : "Copy link"}
+            ? <Check  className="h-4 w-4" aria-hidden="true" />
+            : canNativeShare
+              ? <Share2 className="h-4 w-4" aria-hidden="true" />
+              : <Link2  className="h-4 w-4" aria-hidden="true" />}
+          {copied ? "Copied!" : canNativeShare ? "Share Doo" : "Copy link"}
         </ShareBtn>
-
-        {canNativeShare && (
-          <ShareBtn onClick={handleNativeShare} label="Share via system sheet">
-            <Share2 className="h-4 w-4" aria-hidden="true" />
-            Share
-          </ShareBtn>
-        )}
       </div>
 
       {/* Social + workplace row */}
