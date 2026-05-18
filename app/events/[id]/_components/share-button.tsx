@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Share2, Check, Link2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -66,30 +66,48 @@ function ShareBtn({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function ShareButton({ shareToken, eventTitle }: Props) {
-  const [copied, setCopied] = useState(false)
+  const [copied,       setCopied]       = useState(false)
+  const [canNativeShare, setCanNativeShare] = useState(false)
+
+  // Detect Web Share API availability client-side (unavailable during SSR)
+  useEffect(() => {
+    setCanNativeShare(typeof navigator !== "undefined" && !!navigator.share)
+  }, [])
 
   function shareUrl() {
     return `${window.location.origin}/e/${shareToken}`
   }
 
-  // ── Copy / native share ───────────────────────────────────────────────────
+  // ── Copy link — always goes to clipboard ──────────────────────────────────
 
   async function handleCopy() {
     const url = shareUrl()
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: eventTitle ?? "Join my Doo!", url })
-        return
-      } catch {
-        // User cancelled — fall through to clipboard
-      }
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // Fallback for older browsers / insecure contexts
+      const el = document.createElement("textarea")
+      el.value = url
+      el.style.position = "fixed"
+      el.style.opacity  = "0"
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand("copy")
+      document.body.removeChild(el)
     }
-
-    await navigator.clipboard.writeText(url)
     setCopied(true)
-    toast.success("Link copied!", { description: "Share it with your team." })
-    setTimeout(() => setCopied(false), 2000)
+    toast.success("Link copied!", { description: "Paste it anywhere to share your Doo." })
+    setTimeout(() => setCopied(false), 2500)
+  }
+
+  // ── Native share (mobile / supported browsers only) ───────────────────────
+
+  async function handleNativeShare() {
+    try {
+      await navigator.share({ title: eventTitle ?? "Join my Doo!", url: shareUrl() })
+    } catch {
+      // User cancelled — no-op
+    }
   }
 
   // ── Teams deep link ───────────────────────────────────────────────────────
@@ -128,13 +146,21 @@ export function ShareButton({ shareToken, eventTitle }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* Copy / native share */}
+      {/* Copy link — always clipboard */}
       <ShareBtn onClick={handleCopy} label="Copy share link" active={copied}>
         {copied
           ? <Check className="h-4 w-4" aria-hidden="true" />
           : <Link2 className="h-4 w-4" aria-hidden="true" />}
         {copied ? "Copied!" : "Copy link"}
       </ShareBtn>
+
+      {/* Native share — only shown when Web Share API is available */}
+      {canNativeShare && (
+        <ShareBtn onClick={handleNativeShare} label="Share via…">
+          <Share2 className="h-4 w-4" aria-hidden="true" />
+          Share
+        </ShareBtn>
+      )}
 
       {/* Post to Teams */}
       <ShareBtn onClick={handleTeams} label="Post to Microsoft Teams">
