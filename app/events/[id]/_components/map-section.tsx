@@ -282,16 +282,29 @@ export function MapSection({ stops, eventId, isOrganiser }: Props) {
 
   async function handleAdd(place: PlaceResult) {
     const tempId  = `temp-${Date.now()}`
-    const newStop = { id: tempId, name: place.name, address: place.address, lat: place.lat, lng: place.lng, order: localStops.length }
+    const newStop = {
+      id: tempId, name: place.name, address: place.address,
+      lat: place.lat, lng: place.lng, order: localStops.length,
+    }
+    // Optimistic insert — map re-renders immediately via useEffect([stops])
     setLocalStops((prev) => [...prev, newStop])
+
     const result = await addEventStop({ eventId, ...place })
+
     if (result.error) {
+      // Rollback and throw so RecommendedPlaces keeps the suggestion in the list
       setLocalStops((prev) => prev.filter((s) => s.id !== tempId))
       toast.error("Couldn't add stop", { description: result.error })
-    } else {
-      setLocalStops((prev) => prev.map((s) => s.id === tempId ? { ...s, id: result.id! } : s))
-      toast.success(`${place.name} added to your route`)
+      throw new Error(result.error)
     }
+
+    // Swap temp ID for the persisted DB id
+    setLocalStops((prev) =>
+      prev.map((s) => s.id === tempId ? { ...s, id: result.id! } : s)
+    )
+    toast.success(`${place.name} added to your route`, {
+      description: "Tap the map to see the updated route.",
+    })
   }
 
   function handleMove(i: number, dir: -1 | 1) {
