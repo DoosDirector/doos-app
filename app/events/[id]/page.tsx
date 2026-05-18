@@ -130,7 +130,7 @@ export default async function EventPage({ params, searchParams }: Props) {
 
       {/* Share */}
       <div className="flex justify-end">
-        <ShareButton shareToken={event.share_token} />
+        <ShareButton shareToken={event.share_token} eventTitle={event.title} />
       </div>
 
       {/* RSVP strip */}

@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getUser }      from "@/lib/auth/guard"
 import { EventHeader }  from "@/app/events/[id]/_components/event-header"
 import { MemoryPreview } from "@/app/events/[id]/_components/memory-preview"
+import { ShareButton }  from "@/app/events/[id]/_components/share-button"
 
 // ── Cached fetcher ────────────────────────────────────────────────────────────
 
@@ -274,6 +275,9 @@ export default async function PublicEventPage({ params }: Props) {
         organiser={organiser}
         currentUserId={user?.id ?? ""}
       />
+
+      {/* Share buttons */}
+      <ShareButton shareToken={event.share_token} eventTitle={event.title} />
 
       {/* RSVP summary */}
       <RsvpSummary rsvps={rsvps} />
