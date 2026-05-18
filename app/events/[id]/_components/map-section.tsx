@@ -23,11 +23,14 @@ const DEFAULT_CENTER = { lat: 51.5074, lng: -0.1278 } // London
 
 // ── Read-only map view ────────────────────────────────────────────────────────
 
+const POLY_OPTS = { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.85 }
+
 function RouteMap({ stops }: { stops: Stop[] }) {
-  const mapEl       = useRef<HTMLDivElement>(null)
-  const mapRef      = useRef<any>(null)
-  const markersRef  = useRef<any[]>([])
-  const dirRenderer = useRef<any>(null)
+  const mapEl          = useRef<HTMLDivElement>(null)
+  const mapRef         = useRef<any>(null)
+  const markersRef     = useRef<any[]>([])
+  const dirRenderer    = useRef<any>(null)
+  const fallbackPolyRef = useRef<any>(null)
 
   useEffect(() => {
     if (!mapEl.current) return
@@ -42,7 +45,7 @@ function RouteMap({ stops }: { stops: Stop[] }) {
     })
     dirRenderer.current = new G.DirectionsRenderer({
       suppressMarkers: true,
-      polylineOptions: { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.85 },
+      polylineOptions: POLY_OPTS,
     })
     dirRenderer.current.setMap(mapRef.current)
   }, [])
@@ -51,10 +54,18 @@ function RouteMap({ stops }: { stops: Stop[] }) {
     if (!mapRef.current) return
     const G = (window as any).google.maps
 
+    // ── Clear previous state ───────────────────────────────────────────────
     markersRef.current.forEach((m) => m.setMap(null))
     markersRef.current = []
+    // Detach + reattach renderer to clear any drawn route reliably
+    dirRenderer.current?.setMap(null)
+    dirRenderer.current?.setMap(mapRef.current)
+    fallbackPolyRef.current?.setMap(null)
+    fallbackPolyRef.current = null
+
     if (stops.length === 0) return
 
+    // ── Numbered teal markers ──────────────────────────────────────────────
     markersRef.current = stops.map((s, i) =>
       new G.Marker({
         position: { lat: s.lat, lng: s.lng },
@@ -68,6 +79,7 @@ function RouteMap({ stops }: { stops: Stop[] }) {
       })
     )
 
+    // ── Fit bounds ────────────────────────────────────────────────────────
     if (stops.length === 1) {
       mapRef.current.setCenter({ lat: stops[0].lat, lng: stops[0].lng })
       mapRef.current.setZoom(15)
@@ -77,6 +89,7 @@ function RouteMap({ stops }: { stops: Stop[] }) {
       mapRef.current.fitBounds(bounds, 40)
     }
 
+    // ── Route polyline ────────────────────────────────────────────────────
     if (stops.length >= 2) {
       new G.DirectionsService().route(
         {
@@ -88,11 +101,25 @@ function RouteMap({ stops }: { stops: Stop[] }) {
           travelMode: G.TravelMode.WALKING,
         },
         (result: any, status: string) => {
-          if (status === "OK") dirRenderer.current.setDirections(result)
+          if (status === "OK") {
+            dirRenderer.current?.setDirections(result)
+          } else {
+            // Fallback: straight-line polyline (dashed to signal approximation)
+            fallbackPolyRef.current = new G.Polyline({
+              path:          stops.map((s) => ({ lat: s.lat, lng: s.lng })),
+              strokeColor:   POLY_OPTS.strokeColor,
+              strokeWeight:  POLY_OPTS.strokeWeight,
+              strokeOpacity: 0,
+              icons: [{
+                icon:   { path: "M 0,-1 0,1", strokeOpacity: 0.7, scale: 3 },
+                offset: "0",
+                repeat: "14px",
+              }],
+              map: mapRef.current,
+            })
+          }
         }
       )
-    } else {
-      dirRenderer.current?.setDirections({ routes: [] })
     }
   }, [stops])
 

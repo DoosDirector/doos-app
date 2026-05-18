@@ -67,11 +67,14 @@ function StopItem({
 
 // ── Live map + autocomplete ───────────────────────────────────────────────────
 
+const POLY_OPTS = { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.85 }
+
 function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResult) => void }) {
-  const mapEl       = useRef<HTMLDivElement>(null)
-  const mapRef      = useRef<any>(null)
-  const markersRef  = useRef<any[]>([])
-  const dirRenderer = useRef<any>(null)
+  const mapEl           = useRef<HTMLDivElement>(null)
+  const mapRef          = useRef<any>(null)
+  const markersRef      = useRef<any[]>([])
+  const dirRenderer     = useRef<any>(null)
+  const fallbackPolyRef = useRef<any>(null)
 
   // Init map once
   useEffect(() => {
@@ -86,16 +89,27 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
     })
     dirRenderer.current = new G.DirectionsRenderer({
       suppressMarkers: true,
-      polylineOptions: { strokeColor: "#0d9488", strokeWeight: 4, strokeOpacity: 0.8 },
+      polylineOptions: POLY_OPTS,
     })
     dirRenderer.current.setMap(mapRef.current)
   }, [])
 
-  // Sync markers + directions when stops change
+  // Sync markers + route when stops change
   useEffect(() => {
     if (!mapRef.current) return
     const G = (window as any).google.maps
+
+    // ── Clear previous state ─────────────────────────────────────────────
     markersRef.current.forEach((m) => m.setMap(null))
+    markersRef.current = []
+    dirRenderer.current?.setMap(null)
+    dirRenderer.current?.setMap(mapRef.current)
+    fallbackPolyRef.current?.setMap(null)
+    fallbackPolyRef.current = null
+
+    if (stops.length === 0) return
+
+    // ── Numbered teal markers ────────────────────────────────────────────
     markersRef.current = stops.map((s, i) =>
       new G.Marker({
         position: { lat: s.lat, lng: s.lng },
@@ -104,6 +118,8 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
         icon: { path: G.SymbolPath.CIRCLE, fillColor: "#0d9488", fillOpacity: 1, strokeColor: "white", strokeWeight: 2, scale: 13 },
       })
     )
+
+    // ── Route polyline ───────────────────────────────────────────────────
     if (stops.length >= 2) {
       new G.DirectionsService().route(
         {
@@ -113,11 +129,25 @@ function MapView({ stops, onAddStop }: { stops: Stop[]; onAddStop: (s: PlaceResu
           travelMode: G.TravelMode.WALKING,
         },
         (result: any, status: string) => {
-          if (status === "OK") dirRenderer.current.setDirections(result)
+          if (status === "OK") {
+            dirRenderer.current?.setDirections(result)
+          } else {
+            // Fallback: dashed straight-line polyline when no walkable route exists
+            fallbackPolyRef.current = new G.Polyline({
+              path:          stops.map((s) => ({ lat: s.lat, lng: s.lng })),
+              strokeColor:   POLY_OPTS.strokeColor,
+              strokeWeight:  POLY_OPTS.strokeWeight,
+              strokeOpacity: 0,
+              icons: [{
+                icon:   { path: "M 0,-1 0,1", strokeOpacity: 0.7, scale: 3 },
+                offset: "0",
+                repeat: "14px",
+              }],
+              map: mapRef.current,
+            })
+          }
         }
       )
-    } else {
-      dirRenderer.current?.setDirections({ routes: [] })
     }
   }, [stops])
 
