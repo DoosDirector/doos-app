@@ -1,34 +1,106 @@
+import { cache }    from "react"
+import { notFound } from "next/navigation"
 import type { Metadata } from "next"
-import { CreatedToast } from "./_components/created-toast"
+import { requireUser }    from "@/lib/auth/guard"
+import { createClient }   from "@/lib/supabase/server"
+import { EventHeader }    from "./_components/event-header"
+import { RsvpStrip }      from "./_components/rsvp-strip"
+import { PollSection }    from "./_components/poll-section"
+import { MapSection }     from "./_components/map-section"
+import { MemoryPreview }  from "./_components/memory-preview"
+import { ShareButton }    from "./_components/share-button"
+import { CreatedToast }   from "./_components/created-toast"
 
-export const metadata: Metadata = {
-  title: "Event",
-}
+// ── Cached data fetcher (shared between generateMetadata + page) ──────────────
+
+const fetchEvent = cache(async (id: string) => {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("events")
+    .select(`
+      id, title, description, type, date, alcohol_friendly, share_token,
+      organiser_id, created_at,
+      organiser:profiles!events_organiser_id_fkey(id, display_name, avatar_url),
+      rsvps(id, status, user_id),
+      poll_questions(id, question_text, question_type,
+        poll_options(id, option_text)
+      ),
+      event_stops(id, name, address, lat, lng, "order"),
+      memories(id, storage_path, media_type, caption, created_at)
+    `)
+    .eq("id", id)
+    .single()
+  return data
+})
+
+// ── Metadata ──────────────────────────────────────────────────────────────────
 
 type Props = {
   params:       Promise<{ id: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default async function EventPage({ params, searchParams }: Props) {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id }  = await params
-  const sp      = await searchParams
+  const event   = await fetchEvent(id)
+  return { title: event?.title ?? "Event" }
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default async function EventPage({ params, searchParams }: Props) {
+  const [{ id }, sp, user] = await Promise.all([
+    params,
+    searchParams,
+    requireUser(),
+  ])
+
+  const event = await fetchEvent(id)
+  if (!event) notFound()
+
   const justCreated = sp.created === "1"
+
+  // Normalise nested arrays (Supabase may return null for empty relations)
+  const organiser     = Array.isArray(event.organiser)     ? event.organiser[0]     ?? null : event.organiser
+  const rsvps         = event.rsvps         ?? []
+  const pollQuestions = event.poll_questions ?? []
+  const stops         = event.event_stops   ?? []
+  const memories      = (event.memories     ?? []).sort(
+    (a: { created_at: string }, b: { created_at: string }) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
       {justCreated && <CreatedToast />}
 
-      {/* Placeholder — full event detail implemented in Task 44 */}
-      <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed py-20 text-center">
-        <p className="text-sm text-muted-foreground">
-          Event <span className="font-mono text-xs">{id}</span>
-        </p>
-        <p className="text-base font-semibold">Event detail page coming soon</p>
-        <p className="max-w-xs text-sm text-muted-foreground">
-          Full event view, polls, RSVP, and map will be built in the next tasks.
-        </p>
+      {/* Header */}
+      <EventHeader
+        event={event}
+        organiser={organiser}
+        currentUserId={user.id}
+      />
+
+      {/* Share */}
+      <div className="flex justify-end">
+        <ShareButton shareToken={event.share_token} />
       </div>
+
+      {/* RSVP strip */}
+      <RsvpStrip
+        rsvps={rsvps}
+        eventId={event.id}
+        currentUserId={user.id}
+      />
+
+      {/* Polls */}
+      <PollSection questions={pollQuestions} />
+
+      {/* Map route */}
+      <MapSection stops={stops} />
+
+      {/* Memory box */}
+      <MemoryPreview memories={memories} eventId={event.id} />
     </div>
   )
 }
