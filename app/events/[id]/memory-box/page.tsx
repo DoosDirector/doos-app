@@ -1,10 +1,10 @@
 import { notFound }   from "next/navigation"
 import Link           from "next/link"
-import Image          from "next/image"
 import type { Metadata } from "next"
-import { ChevronLeft, Camera, PlayCircle, PlusCircle } from "lucide-react"
+import { ChevronLeft, Camera, PlusCircle } from "lucide-react"
 import { requireUser }  from "@/lib/auth/guard"
 import { createClient } from "@/lib/supabase/server"
+import { MediaCard }    from "./_components/media-card"
 
 const BUCKET = "memories"
 
@@ -105,47 +105,13 @@ export default async function MemoryBoxPage({ params }: Props) {
                   : null
 
               return (
-                <div
-                  key={m.id}
-                  role="listitem"
-                  className="group relative aspect-square overflow-hidden rounded-xl bg-muted"
-                >
-                  {m.media_type === "image" ? (
-                    <Image
-                      src={m.publicUrl}
-                      alt={m.caption ?? "Memory photo"}
-                      fill
-                      sizes="(min-width: 768px) 25vw, (min-width: 640px) 33vw, 50vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    />
-                  ) : (
-                    /* Video: dark card with centred play icon */
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-neutral-900">
-                      <PlayCircle
-                        className="h-10 w-10 text-white/80"
-                        aria-hidden="true"
-                      />
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-white/50">
-                        Video
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Bottom overlay: caption + uploader */}
-                  {(m.caption || uploaderName) && (
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                      {m.caption && (
-                        <p className="truncate text-[11px] font-medium text-white">
-                          {m.caption}
-                        </p>
-                      )}
-                      {uploaderName && (
-                        <p className="truncate text-[10px] text-white/70">
-                          {uploaderName}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                <div key={m.id} role="listitem">
+                  <MediaCard
+                    publicUrl={m.publicUrl}
+                    mediaType={m.media_type as "image" | "video"}
+                    caption={m.caption}
+                    uploaderName={uploaderName}
+                  />
                 </div>
               )
             })}

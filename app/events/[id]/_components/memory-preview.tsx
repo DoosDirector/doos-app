@@ -1,8 +1,8 @@
 import Link from "next/link"
-import Image from "next/image"
-import { Camera, PlayCircle, PlusCircle } from "lucide-react"
+import { Camera, PlusCircle } from "lucide-react"
 import { createClient } from "@/lib/supabase/server"
 import type { Tables } from "@/types"
+import { MediaCard } from "../memory-box/_components/media-card"
 
 const BUCKET = "memories"
 
@@ -62,37 +62,13 @@ export async function MemoryPreview({ memories, eventId }: Props) {
           {/* ── Thumbnail grid ── */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {previewUrls.map((m) => (
-              <Link
+              <MediaCard
                 key={m.id}
-                href={`/events/${eventId}/memories`}
-                className="group relative aspect-square overflow-hidden rounded-xl bg-muted"
-                aria-label={m.caption ?? (m.media_type === "video" ? "Video memory" : "Photo memory")}
-              >
-                {m.media_type === "image" ? (
-                  <Image
-                    src={m.publicUrl}
-                    alt={m.caption ?? "Memory"}
-                    fill
-                    sizes="(min-width: 640px) 25vw, 50vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                ) : (
-                  /* Video: show placeholder with play icon */
-                  <div className="flex h-full w-full items-center justify-center bg-neutral-900">
-                    <PlayCircle
-                      className="h-10 w-10 text-white/80 drop-shadow"
-                      aria-hidden="true"
-                    />
-                  </div>
-                )}
-
-                {/* Caption tooltip on hover */}
-                {m.caption && (
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    <p className="truncate text-[10px] font-medium text-white">{m.caption}</p>
-                  </div>
-                )}
-              </Link>
+                publicUrl={m.publicUrl}
+                mediaType={m.media_type as "image" | "video"}
+                caption={m.caption}
+                sizes="(min-width: 640px) 25vw, 50vw"
+              />
             ))}
           </div>
 
