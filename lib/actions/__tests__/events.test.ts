@@ -29,6 +29,9 @@ import {
   upsertRsvp,
   uploadMemory,
   deleteMemory,
+  addEventStop,
+  deleteEventStop,
+  reorderEventStops,
 } from "@/lib/actions/events"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -569,5 +572,191 @@ describe("deleteMemory", () => {
 
     expect(result).toEqual({ error: "delete failed" })
     expect(removeMock).not.toHaveBeenCalled()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// addEventStop
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("addEventStop", () => {
+  const EVENT_ID = "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+  const STOP_ID  = "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+
+  const BASE_STOP = {
+    eventId: EVENT_ID,
+    name:    "The Red Lion",
+    address: "1 High Street, London",
+    lat:     51.5074,
+    lng:     -0.1278,
+    placeId: "ChIJplace123",
+  }
+
+  it("happy path — first stop gets order 0 and returns its id", async () => {
+    const fromMock = vi.fn()
+      .mockImplementationOnce(() => makeChain({ data: [],              error: null })) // select existing stops
+      .mockImplementationOnce(() => makeChain({ data: { id: STOP_ID }, error: null })) // insert → single
+    ;(createClient as Mock).mockResolvedValue({ from: fromMock })
+
+    const result = await addEventStop(BASE_STOP)
+
+    expect(result).toEqual({ id: STOP_ID })
+    const insertChain = fromMock.mock.results[1].value
+    expect(insertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ order: 0, event_id: EVENT_ID }),
+    )
+  })
+
+  it("happy path — subsequent stop gets order = max + 1", async () => {
+    const fromMock = vi.fn()
+      .mockImplementationOnce(() => makeChain({ data: [{ order: 2 }], error: null })) // existing stops, max order = 2
+      .mockImplementationOnce(() => makeChain({ data: { id: STOP_ID }, error: null }))
+    ;(createClient as Mock).mockResolvedValue({ from: fromMock })
+
+    await addEventStop(BASE_STOP)
+
+    const insertChain = fromMock.mock.results[1].value
+    expect(insertChain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ order: 3 }),
+    )
+  })
+
+  it("validation — missing name returns error without DB calls", async () => {
+    const client = makeClient()
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await addEventStop({ ...BASE_STOP, name: "" })
+
+    expect(result).toMatchObject({ error: expect.any(String) })
+    expect(client.from).not.toHaveBeenCalled()
+  })
+
+  it("validation — non-UUID eventId returns error without DB calls", async () => {
+    const client = makeClient()
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await addEventStop({ ...BASE_STOP, eventId: "not-a-uuid" })
+
+    expect(result).toMatchObject({ error: "Invalid event ID" })
+    expect(client.from).not.toHaveBeenCalled()
+  })
+
+  it("DB insert error — returns error", async () => {
+    const fromMock = vi.fn()
+      .mockImplementationOnce(() => makeChain({ data: [], error: null }))
+      .mockImplementationOnce(() => makeChain({ data: null, error: { message: "insert failed" } }))
+    ;(createClient as Mock).mockResolvedValue({ from: fromMock })
+
+    const result = await addEventStop(BASE_STOP)
+
+    expect(result).toEqual({ error: "insert failed" })
+  })
+
+  it("revalidates event path on success", async () => {
+    const fromMock = vi.fn()
+      .mockImplementationOnce(() => makeChain({ data: [], error: null }))
+      .mockImplementationOnce(() => makeChain({ data: { id: STOP_ID }, error: null }))
+    ;(createClient as Mock).mockResolvedValue({ from: fromMock })
+
+    await addEventStop(BASE_STOP)
+
+    expect(revalidatePath).toHaveBeenCalledWith(`/events/${EVENT_ID}`)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// deleteEventStop
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("deleteEventStop", () => {
+  const EVENT_ID = "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+  const STOP_ID  = "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+
+  it("happy path — deletes stop and revalidates path", async () => {
+    const client = makeClient({ event_stops: { error: null } })
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await deleteEventStop(STOP_ID, EVENT_ID)
+
+    expect(result).toBeUndefined()
+    expect(revalidatePath).toHaveBeenCalledWith(`/events/${EVENT_ID}`)
+  })
+
+  it("DB error — returns error without revalidating", async () => {
+    const chain = makeChain({ error: { message: "delete failed" } })
+    const client = { from: vi.fn().mockReturnValue(chain) }
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await deleteEventStop(STOP_ID, EVENT_ID)
+
+    expect(result).toEqual({ error: "delete failed" })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("requireUser failure — propagates thrown error", async () => {
+    ;(requireUser as Mock).mockRejectedValueOnce(new Error("Unauthenticated"))
+
+    await expect(deleteEventStop(STOP_ID, EVENT_ID)).rejects.toThrow("Unauthenticated")
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// reorderEventStops
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("reorderEventStops", () => {
+  const EVENT_ID   = "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+  const ORDERED_IDS = [
+    "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "f1eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    "f2eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  ]
+
+  it("happy path — issues one update per stop and revalidates", async () => {
+    const chain = makeChain({ error: null })
+    const client = { from: vi.fn().mockReturnValue(chain) }
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await reorderEventStops(EVENT_ID, ORDERED_IDS)
+
+    expect(result).toBeUndefined()
+    expect(client.from).toHaveBeenCalledTimes(3)
+    expect(chain.update).toHaveBeenNthCalledWith(1, { order: 0 })
+    expect(chain.update).toHaveBeenNthCalledWith(2, { order: 1 })
+    expect(chain.update).toHaveBeenNthCalledWith(3, { order: 2 })
+    expect(revalidatePath).toHaveBeenCalledWith(`/events/${EVENT_ID}`)
+  })
+
+  it("one update fails — returns error and does not revalidate", async () => {
+    const goodChain = makeChain({ error: null })
+    const badChain  = makeChain({ error: { message: "update failed" } })
+    const client = { from: vi.fn()
+      .mockReturnValueOnce(goodChain)
+      .mockReturnValueOnce(badChain)
+      .mockReturnValueOnce(goodChain),
+    }
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await reorderEventStops(EVENT_ID, ORDERED_IDS)
+
+    expect(result).toEqual({ error: "update failed" })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("empty list — no DB calls, revalidates path", async () => {
+    const client = makeClient()
+    ;(createClient as Mock).mockResolvedValue(client)
+
+    const result = await reorderEventStops(EVENT_ID, [])
+
+    expect(result).toBeUndefined()
+    expect(client.from).not.toHaveBeenCalled()
+    expect(revalidatePath).toHaveBeenCalledWith(`/events/${EVENT_ID}`)
+  })
+
+  it("requireUser failure — propagates thrown error", async () => {
+    ;(requireUser as Mock).mockRejectedValueOnce(new Error("Unauthenticated"))
+
+    await expect(reorderEventStops(EVENT_ID, ORDERED_IDS)).rejects.toThrow("Unauthenticated")
   })
 })
