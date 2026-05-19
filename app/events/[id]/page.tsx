@@ -156,7 +156,7 @@ export default async function EventPage({ params, searchParams }: Props) {
       />
 
       {/* Polls */}
-      <PollSection questions={pollQuestions} currentUserId={user.id} />
+      <PollSection questions={pollQuestions} currentUserId={user.id} eventId={event.id} />
 
       {/* Map route */}
       <MapSection

@@ -15,8 +15,9 @@ type PollOption   = Pick<Tables<"poll_options">,  "id" | "option_text"> & { poll
 type PollQuestion = Pick<Tables<"poll_questions">, "id" | "question_text"> & { poll_options: PollOption[] }
 
 type Props = {
-  questions: PollQuestion[]
+  questions:     PollQuestion[]
   currentUserId: string
+  eventId:       string
 }
 
 // ── Vote percentage bar ───────────────────────────────────────────────────────
@@ -53,9 +54,11 @@ function buildInitialVoteMap(question: PollQuestion): Map<string, VoteEntry> {
 function PollCard({
   question,
   currentUserId,
+  eventId,
 }: {
-  question: PollQuestion
+  question:      PollQuestion
   currentUserId: string
+  eventId:       string
 }) {
   // Live vote map — updated via Realtime
   const [voteMap, setVoteMap] = useState<Map<string, VoteEntry>>(
@@ -114,7 +117,7 @@ function PollCard({
     setVotedOptionId(optionId)
 
     startTransition(async () => {
-      const result = await castVote(optionId, question.id)
+      const result = await castVote(optionId, question.id, eventId)
       if (result?.error) {
         setVotedOptionId(previous)
         toast.error("Couldn't save your vote", { description: result.error })
@@ -207,7 +210,7 @@ function PollCard({
 
 // ── Section ───────────────────────────────────────────────────────────────────
 
-export function PollSection({ questions, currentUserId }: Props) {
+export function PollSection({ questions, currentUserId, eventId }: Props) {
   if (questions.length === 0) return null
 
   return (
@@ -221,7 +224,7 @@ export function PollSection({ questions, currentUserId }: Props) {
 
       <div className="space-y-3">
         {questions.map((q) => (
-          <PollCard key={q.id} question={q} currentUserId={currentUserId} />
+          <PollCard key={q.id} question={q} currentUserId={currentUserId} eventId={eventId} />
         ))}
       </div>
     </section>

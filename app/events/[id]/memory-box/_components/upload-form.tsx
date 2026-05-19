@@ -17,7 +17,6 @@ type FileEntry = {
 
 type Props = {
   eventId:      string
-  // uploadMemory will be injected once Task 66 server action is ready
   uploadMemory?: (formData: FormData) => Promise<{ error: string } | void>
 }
 

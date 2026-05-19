@@ -126,6 +126,7 @@ export async function createEvent(
 export async function castVote(
   optionId:   string,
   questionId: string,
+  eventId:    string,
 ): Promise<{ error: string } | void> {
   const user     = await requireUser()
   const supabase = await createClient()
@@ -144,6 +145,8 @@ export async function castVote(
     .insert({ option_id: optionId, question_id: questionId, user_id: user.id })
 
   if (insErr) return { error: insErr.message }
+
+  revalidatePath(`/events/${eventId}`)
 }
 
 // ── upsertRsvp ────────────────────────────────────────────────────────────────
@@ -177,6 +180,7 @@ export async function upsertRsvp(
 
   if (error) return { error: error.message }
 
+  revalidatePath(`/events/${parsed.data.eventId}`)
   redirect(`/events/${parsed.data.eventId}?rsvp=updated`)
 }
 
